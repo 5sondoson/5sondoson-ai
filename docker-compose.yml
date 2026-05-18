@@ -1,0 +1,19 @@
+services:
+  ai-server:
+    build: .
+    image: 5sondoson-ai:latest
+    container_name: 5sondoson-ai
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file: .env
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
