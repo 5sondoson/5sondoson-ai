@@ -7,6 +7,7 @@ __pycache__/
 .vscode/
 *.log
 
-# 모델 파일은 깃에 안 올림 (S3로 관리)
-# 단, dummy 모델은 빌드 검증용으로 commit 가능
-# app/models/**/*.joblib
+# 모델 산출물은 깃에 안 올림 (S3로 관리, 빌드 시 dummy 자동 생성)
+app/models/performance/
+app/models/market_value/
+app/models/similar/
