@@ -5,7 +5,7 @@ import logging
 import time
 
 from app.features.store import MockFeatureStore
-from app.models.registry import ModelRegistry
+from app.models.registry import LEAGUES, ModelRegistry
 from app.schemas.api import (
     FailedPlayer,
     MarketValueRequest,
@@ -93,6 +93,7 @@ class MarketValueHandler:
                 "age": age,
                 "player_id": player_id,
                 "target_league": league.value,
+                "target_league_idx": LEAGUES.index(league.value) if league.value in LEAGUES else 0,
                 **perf_hint,
             }
             result = predictor.predict(mv_input)
