@@ -102,4 +102,5 @@ class SimilarPlayersHandler:
                 similar_player_id=similar_id,
                 similarity_score=round(sim_score, 4),
             ))
-        return entries
+        # 가장 유사한 선수가 먼저 오도록 유사도 내림차순 정렬
+        return sorted(entries, key=lambda e: e.similarity_score, reverse=True)
