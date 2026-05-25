@@ -16,15 +16,16 @@ logger = logging.getLogger(__name__)
 
 
 # 포지션별 예측 출력 키.
-# 백엔드 PR #9의 적응도 산출 지표 + 리그 적응 효율성(pass_accuracy)에 맞춤.
+# AI 팀 Stage1 모델의 실제 (target, position) 분포에 맞춤.
+# 백엔드 AiPerformancePrediction 의 pred_* 필드 10개와 1:1 대응한다.
 POSITION_OUTPUT_KEYS = {
-    "FW": ["goals", "shots", "dribbles", "key_passes", "pass_accuracy"],
-    "MF": ["passes", "key_passes", "tackles", "pass_accuracy"],
-    "DF": ["aerials_won", "blocked_shots", "pass_accuracy"],
-    "GK": ["saves", "cleansheets", "pass_accuracy"],
+    "FW": ["goals", "shots", "dribbles"],
+    "MF": ["key_passes", "passes", "tackles"],
+    "DF": ["aerials_won", "blocked_shots"],
+    "GK": ["pass_accuracy", "cleansheets"],
 }
 
-LEAGUES = ["premier_league", "la_liga", "serie_a", "bundesliga", "ligue_1"]
+LEAGUES = ["EPL", "LA", "SA", "BL", "L1"]
 POSITIONS = ["FW", "MF", "DF", "GK"]
 
 # Mock 값 범위

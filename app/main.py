@@ -17,12 +17,12 @@ from app.handlers.similar_players import SimilarPlayersHandler
 from app.models.registry import ModelRegistry
 from app.schemas.api import (
     ErrorResponse,
+    MarketValuePrediction,
     MarketValueRequest,
-    MarketValueResponse,
+    PerformancePrediction,
     PerformanceRequest,
-    PerformanceResponse,
+    SimilarPlayersPrediction,
     SimilarPlayersRequest,
-    SimilarPlayersResponse,
 )
 
 # ===== 로깅 =====
@@ -158,22 +158,22 @@ def models_status():
     return state["registry"].status()
 
 
-# ===== 메인 엔드포인트 3개 =====
-@app.post("/predictions/performance", response_model=PerformanceResponse)
+# ===== 메인 엔드포인트 3개 (백엔드 AiPredictionClient 가 호출하는 경로) =====
+@app.post("/predict/performance", response_model=list[PerformancePrediction])
 def predict_performance(request: PerformanceRequest):
     if "performance_handler" not in state:
         raise HTTPException(503, "server not ready")
     return state["performance_handler"].handle(request)
 
 
-@app.post("/predictions/market-value", response_model=MarketValueResponse)
+@app.post("/predict/market-value", response_model=list[MarketValuePrediction])
 def predict_market_value(request: MarketValueRequest):
     if "market_value_handler" not in state:
         raise HTTPException(503, "server not ready")
     return state["market_value_handler"].handle(request)
 
 
-@app.post("/predictions/similar-players", response_model=SimilarPlayersResponse)
+@app.post("/predict/similar-players", response_model=list[SimilarPlayersPrediction])
 def predict_similar_players(request: SimilarPlayersRequest):
     if "similar_players_handler" not in state:
         raise HTTPException(503, "server not ready")

@@ -1,22 +1,35 @@
-"""POST /predictions/performance 핸들러."""
+"""POST /predict/performance 핸들러.
+
+백엔드 AiPredictionClient.fetchPerformancePredictions 호출에 대응한다.
+"""
 from __future__ import annotations
 
 import logging
 import time
+from typing import Optional
 
 from app.features.store import MockFeatureStore
 from app.models.registry import ModelRegistry, POSITION_OUTPUT_KEYS
-from app.schemas.api import (
-    FailedPlayer,
-    PerformanceRequest,
-    PerformanceResponse,
-    PerformanceStats,
-    PlayerPerformancePrediction,
-    Position,
-    ResponseMeta,
-)
+from app.schemas.api import PerformancePrediction, PerformanceRequest
+from app.schemas.enums import League
 
 logger = logging.getLogger(__name__)
+
+
+# 레지스트리 출력 키 -> 백엔드 응답 필드 매핑.
+# 백엔드 DTO 표기를 따라 typo(aeriels, cleensheets) 그대로 사용한다.
+_OUTPUT_KEY_TO_FIELD: dict[str, str] = {
+    "goals": "pred_goals_total_per90",
+    "shots": "pred_shots_total_per90",
+    "dribbles": "pred_successful_dribbles_per90",
+    "key_passes": "pred_key_passes_per90",
+    "passes": "pred_passes_total_per90",
+    "tackles": "pred_tackles_total_per90",
+    "aerials_won": "pred_aeriels_won_per90",
+    "blocked_shots": "pred_blocked_shots_per90",
+    "pass_accuracy": "pred_accurate_passes_pct",
+    "cleansheets": "pred_cleensheets_total",
+}
 
 
 class PerformanceHandler:
@@ -24,69 +37,41 @@ class PerformanceHandler:
         self.registry = registry
         self.feature_store = feature_store
 
-    def handle(self, request: PerformanceRequest) -> PerformanceResponse:
+    def handle(self, request: PerformanceRequest) -> list[PerformancePrediction]:
         t0 = time.time()
-        predictions: list[PlayerPerformancePrediction] = []
-        failed: list[FailedPlayer] = []
-        used_versions: dict[str, str] = {}
-        any_mock = False
+        league = request.destination_league
+        results: list[PerformancePrediction] = []
 
-        for player_input in request.players:
+        for player_id in request.player_ids:
             try:
-                pred, versions, is_mock = self._predict_one(
-                    player_input.player_id,
-                    player_input.season_id,
-                    request.target_leagues,
-                )
-                predictions.append(pred)
-                used_versions.update(versions)
-                any_mock = any_mock or is_mock
+                results.append(self._predict_one(player_id, league))
             except Exception as e:
-                logger.exception(f"performance prediction failed for player_id={player_input.player_id}")
-                failed.append(FailedPlayer(
-                    player_id=player_input.player_id,
-                    reason=str(e),
-                ))
+                logger.exception(f"performance prediction failed for player_id={player_id}")
+                # 실패도 1:1 대응 유지 (모든 pred_* 가 None)
+                results.append(PerformancePrediction(player_id=player_id))
 
         latency_ms = int((time.time() - t0) * 1000)
-        return PerformanceResponse(
-            predictions=predictions,
-            failed=failed,
-            meta=ResponseMeta(
-                requested=len(request.players),
-                succeeded=len(predictions),
-                failed_count=len(failed),
-                latency_ms=latency_ms,
-                model_versions=used_versions,
-                is_mock=any_mock,
-            ),
+        logger.info(
+            "performance: league=%s requested=%d latency_ms=%d",
+            league.value, len(request.player_ids), latency_ms,
         )
+        return results
 
-    def _predict_one(self, player_id, season_id, target_leagues):
-        info = self.feature_store.get_player_info(player_id, season_id)
+    def _predict_one(self, player_id: int, league: League) -> PerformancePrediction:
         if not self.feature_store.exists(player_id):
             raise ValueError(f"player_id={player_id} not found")
 
-        features = self.feature_store.get_features(player_id, season_id)
+        info = self.feature_store.get_player_info(player_id, season_id=0)
+        features = self.feature_store.get_features(player_id, season_id=0)
         position = info["position"]
         output_keys = POSITION_OUTPUT_KEYS[position]
 
-        by_league = {}
-        versions = {}
-        any_mock = False
+        predictor = self.registry.get_performance(league.value, position)
+        raw = predictor.predict(features)
 
-        for league in target_leagues:
-            predictor = self.registry.get_performance(league.value, position)
-            raw_result = predictor.predict(features)
-            # output_keys 만 사용 (안전 장치)
-            stats = {k: raw_result.get(k, 0.0) for k in output_keys}
-            by_league[league] = PerformanceStats(stats=stats)
-            versions[f"performance:{league.value}:{position}"] = predictor.version
-            any_mock = any_mock or predictor.is_mock
-
-        prediction = PlayerPerformancePrediction(
-            player_id=player_id,
-            position=Position(position),
-            by_league=by_league,
-        )
-        return prediction, versions, any_mock
+        kwargs: dict[str, Optional[float]] = {"player_id": player_id}
+        for key in output_keys:
+            field = _OUTPUT_KEY_TO_FIELD.get(key)
+            if field and key in raw:
+                kwargs[field] = float(raw[key])
+        return PerformancePrediction(**kwargs)
