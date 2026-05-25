@@ -34,7 +34,7 @@ POSITION_OUTPUT_KEYS = {
     "GK": ["saves", "cleansheets", "pass_accuracy"],
 }
 
-LEAGUES = ["premier_league", "la_liga", "serie_a", "bundesliga", "ligue_1"]
+LEAGUES = ["EPL", "LA", "SA", "BL", "L1"]
 POSITIONS = ["FW", "MF", "DF", "GK"]
 
 # 학습 시 사용할 피처 (포지션 무관, 공통)
