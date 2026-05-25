@@ -1,166 +1,106 @@
-"""API 요청/응답 스키마.
+"""백엔드(5sondoson-be) AiPredictionClient 가 호출하는 형태와 일치하는 요청/응답 스키마.
 
-이 파일이 AI 서버와 백엔드 사이의 계약(contract).
-백엔드 PR #9 스펙에 맞춰 설계.
+출처: src/main/java/com/osondoson/backend/admin/ai/dto/
+
+특징:
+- JSON 직렬화는 camelCase (백엔드 Java record 표기와 일치).
+- pred_* 필드는 모두 Optional — 실패/미해당 시 None 으로 전달.
+- 백엔드 DTO 의 typo 도 그대로 따른다(aeriels, cleensheets) — 시스템 전체 일관성을 위함.
 """
 from __future__ import annotations
 
-from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
+
+from app.schemas.enums import League
 
 
-# ============================================================
-# 공통 enum / 기본 타입
-# ============================================================
+class ApiModel(BaseModel):
+    """모든 요청/응답이 상속하는 베이스.
 
-class Position(str, Enum):
-    FW = "FW"
-    MF = "MF"
-    DF = "DF"
-    GK = "GK"
-
-
-class TargetLeague(str, Enum):
-    PREMIER_LEAGUE = "premier_league"
-    LA_LIGA = "la_liga"
-    SERIE_A = "serie_a"
-    BUNDESLIGA = "bundesliga"
-    LIGUE_1 = "ligue_1"
-
-
-class PlayerInput(BaseModel):
-    """배치 요청 안에 들어가는 선수 1명의 정보."""
-    player_id: int = Field(..., description="선수 ID")
-    season_id: int = Field(..., description="기준 시즌 ID")
-
-
-class FailedPlayer(BaseModel):
-    """처리 실패한 선수 정보."""
-    player_id: int
-    reason: str
-
-
-# ============================================================
-# 1. 퍼포먼스 예측: POST /predictions/performance
-# ============================================================
-
-class PerformanceRequest(BaseModel):
-    players: list[PlayerInput] = Field(..., max_length=100,
-                                       description="선수 리스트 (보통 50명)")
-    target_leagues: list[TargetLeague] = Field(
-        default_factory=lambda: list(TargetLeague),
-        description="예측할 대상 리그. 비우면 5대리그 전체",
-    )
-
-
-class PerformanceStats(BaseModel):
-    """포지션별 예측 스탯. 키는 포지션마다 다름.
-
-    FW: goals, shots, dribbles, pass_accuracy, key_passes
-    MF: passes, key_passes, tackles, pass_accuracy
-    DF: aerials_won, blocked_shots, pass_accuracy
-    GK: saves, cleansheets, pass_accuracy
+    내부 코드는 snake_case, JSON 입출력은 camelCase 로 변환된다.
     """
-    stats: dict[str, float] = Field(..., description="포지션별 예측 스탯")
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
 
 
-class PlayerPerformancePrediction(BaseModel):
+# ============================================================
+# 1. 퍼포먼스 예측: POST /predict/performance
+# ============================================================
+
+class PerformanceRequest(ApiModel):
+    """백엔드 AiPerformanceRequest 와 동일."""
+    player_ids: list[int]
+    destination_league: League
+
+
+class PerformancePrediction(ApiModel):
+    """백엔드 AiPerformancePrediction 와 동일."""
     player_id: int
-    position: Position
-    by_league: dict[TargetLeague, PerformanceStats] = Field(
-        ..., description="리그별 예측 퍼포먼스"
-    )
-
-
-class PerformanceResponse(BaseModel):
-    predictions: list[PlayerPerformancePrediction]
-    failed: list[FailedPlayer] = Field(default_factory=list)
-    meta: "ResponseMeta"
+    pred_goals_total_per90: Optional[float] = None
+    pred_shots_total_per90: Optional[float] = None
+    pred_successful_dribbles_per90: Optional[float] = None
+    pred_key_passes_per90: Optional[float] = None
+    pred_passes_total_per90: Optional[float] = None
+    pred_tackles_total_per90: Optional[float] = None
+    pred_aeriels_won_per90: Optional[float] = None
+    pred_blocked_shots_per90: Optional[float] = None
+    pred_accurate_passes_pct: Optional[float] = None
+    pred_cleensheets_total: Optional[float] = None
 
 
 # ============================================================
-# 2. 시장가치 예측: POST /predictions/market-value
+# 2. 시장가치 예측: POST /predict/market-value
 # ============================================================
 
-class MarketValueRequest(BaseModel):
-    players: list[PlayerInput] = Field(..., max_length=100)
-    target_leagues: list[TargetLeague] = Field(
-        default_factory=lambda: list(TargetLeague),
-    )
-    # 백엔드가 퍼포먼스 예측 결과를 알고 있으면 같이 전달 (선택).
-    # 없으면 AI 서버가 내부적으로 다시 추론.
-    performance_hints: Optional[dict[int, dict]] = Field(
-        default=None,
-        description="player_id -> 퍼포먼스 예측 결과 (있으면 재사용)"
-    )
+class MarketValueRequest(ApiModel):
+    """백엔드 AiMarketValueRequest 와 동일."""
+    player_ids: list[int]
+    destination_league: League
 
 
-class PlayerMarketValuePrediction(BaseModel):
+class MarketValuePrediction(ApiModel):
+    """백엔드 AiMarketValuePrediction 와 동일.
+
+    predicted_mv: 예측 시장가치(EUR, 정수).
+    mv_change_rate: 현재 시장가치 대비 변화율.
+    """
     player_id: int
-    position: Position
-    by_league: dict[TargetLeague, float] = Field(
-        ..., description="리그별 예측 시장가치 (EUR)"
-    )
-
-
-class MarketValueResponse(BaseModel):
-    predictions: list[PlayerMarketValuePrediction]
-    failed: list[FailedPlayer] = Field(default_factory=list)
-    meta: "ResponseMeta"
+    predicted_mv: Optional[int] = None
+    mv_change_rate: Optional[float] = None
 
 
 # ============================================================
-# 3. 유사 선수 추천: POST /predictions/similar-players
+# 3. 유사 선수 추천: POST /predict/similar-players
 # ============================================================
 
-class SimilarPlayersRequest(BaseModel):
-    players: list[PlayerInput] = Field(..., max_length=100)
-    target_leagues: list[TargetLeague] = Field(
-        default_factory=lambda: list(TargetLeague),
-    )
-    top_k: int = Field(default=5, ge=1, le=20,
-                       description="리그당 추천할 유사 선수 수")
+class SimilarPlayersRequest(ApiModel):
+    """백엔드 AiSimilarPlayersRequest 와 동일."""
+    player_ids: list[int]
+    destination_league: League
 
 
-class SimilarPlayerEntry(BaseModel):
+class SimilarPlayerEntry(ApiModel):
+    """백엔드 SimilarPlayerEntry 와 동일."""
     similar_player_id: int
-    similarity_score: float = Field(..., ge=0.0, le=1.0)
+    similarity_score: float
 
 
-class PlayerSimilarPrediction(BaseModel):
+class SimilarPlayersPrediction(ApiModel):
+    """백엔드 AiSimilarPlayersPrediction 와 동일."""
     player_id: int
-    position: Position
-    by_league: dict[TargetLeague, list[SimilarPlayerEntry]]
-
-
-class SimilarPlayersResponse(BaseModel):
-    predictions: list[PlayerSimilarPrediction]
-    failed: list[FailedPlayer] = Field(default_factory=list)
-    meta: "ResponseMeta"
+    similar_players: list[SimilarPlayerEntry]
 
 
 # ============================================================
-# 공통 메타
+# 에러 응답
 # ============================================================
 
-class ResponseMeta(BaseModel):
-    requested: int = Field(..., description="요청된 선수 수")
-    succeeded: int = Field(..., description="성공한 선수 수")
-    failed_count: int = Field(..., description="실패한 선수 수")
-    latency_ms: int = Field(..., description="처리 시간 (밀리초)")
-    model_versions: dict[str, str] = Field(default_factory=dict)
-    is_mock: bool = Field(..., description="mock 모델이 하나라도 사용됐는지")
-
-
-class ErrorResponse(BaseModel):
+class ErrorResponse(ApiModel):
     error_code: str
     message: str
-    details: dict = Field(default_factory=dict)
-
-
-# Forward reference 해소
-PerformanceResponse.model_rebuild()
-MarketValueResponse.model_rebuild()
-SimilarPlayersResponse.model_rebuild()
+    details: dict = {}
