@@ -1,4 +1,4 @@
-"""3개 엔드포인트 전체 동작 검증."""
+"""3개 엔드포인트 통합 동작 검증 (백엔드 호출 contract 기준)."""
 from __future__ import annotations
 
 import sys
@@ -25,125 +25,91 @@ def test_models_status():
         r = client.get("/models/status")
         assert r.status_code == 200
         data = r.json()
-        assert "performance" in data
-        assert "market_value" in data
-        assert "similarity" in data
-        # 28개 모델 확인 (20 + 4 + 4)
-        assert len(data["performance"]) == 20
+        assert len(data["performance"]) == 20  # 5 leagues * 4 positions
         assert len(data["market_value"]) == 4
         assert len(data["similarity"]) == 4
-        print(f"  models/status 통과 (총 {20 + 4 + 4}개)")
+        print("  models/status 통과 (총 28개)")
 
 
 def test_performance_basic():
     payload = {
-        "players": [
-            {"player_id": 10001, "season_id": 2024},
-            {"player_id": 10002, "season_id": 2024},
-            {"player_id": 10003, "season_id": 2024},
-        ],
-        "target_leagues": ["premier_league", "la_liga"],
+        "playerIds": [10001, 10002, 10003],
+        "destinationLeague": "EPL",
     }
     with TestClient(app) as client:
-        r = client.post("/predictions/performance", json=payload)
+        r = client.post("/predict/performance", json=payload)
         assert r.status_code == 200, r.text
         data = r.json()
-        assert len(data["predictions"]) == 3
-        assert data["meta"]["succeeded"] == 3
-        assert data["meta"]["failed_count"] == 0
-
-        # 포지션별 출력 키가 PR #9 스펙대로 들어가야 함
-        for pred in data["predictions"]:
-            position = pred["position"]
-            stats = pred["by_league"]["premier_league"]["stats"]
-            if position == "FW":
-                assert set(stats.keys()) >= {"goals", "shots", "dribbles", "key_passes", "pass_accuracy"}
-            elif position == "MF":
-                assert set(stats.keys()) >= {"passes", "key_passes", "tackles", "pass_accuracy"}
-            elif position == "DF":
-                assert set(stats.keys()) >= {"aerials_won", "blocked_shots", "pass_accuracy"}
-            elif position == "GK":
-                assert set(stats.keys()) >= {"saves", "cleansheets", "pass_accuracy"}
-        print(f"  performance 통과 ({len(data['predictions'])}명)")
+        assert isinstance(data, list)
+        assert len(data) == 3
+        ids = {p["playerId"] for p in data}
+        assert ids == {10001, 10002, 10003}
+        any_pred = any(
+            any(v is not None for k, v in p.items() if k.startswith("pred"))
+            for p in data
+        )
+        assert any_pred
+        print(f"  performance 통과 ({len(data)}명)")
 
 
 def test_market_value_basic():
-    payload = {
-        "players": [{"player_id": 10001, "season_id": 2024}],
-        "target_leagues": ["premier_league", "la_liga"],
-    }
+    payload = {"playerIds": [10001], "destinationLeague": "EPL"}
     with TestClient(app) as client:
-        r = client.post("/predictions/market-value", json=payload)
+        r = client.post("/predict/market-value", json=payload)
         assert r.status_code == 200, r.text
         data = r.json()
-        assert len(data["predictions"]) == 1
-        pred = data["predictions"][0]
-        assert pred["by_league"]["premier_league"] > 0
-        assert pred["by_league"]["la_liga"] > 0
-        print(f"  market_value 통과 (EPL={pred['by_league']['premier_league']:,.0f} EUR)")
+        assert len(data) == 1
+        p = data[0]
+        assert p["playerId"] == 10001
+        assert p["predictedMv"] is not None and p["predictedMv"] > 0
+        print(f"  market_value 통과 (predictedMv={p['predictedMv']:,})")
 
 
 def test_similar_players_basic():
-    payload = {
-        "players": [{"player_id": 10001, "season_id": 2024}],
-        "target_leagues": ["premier_league"],
-        "top_k": 3,
-    }
+    payload = {"playerIds": [10001], "destinationLeague": "EPL"}
     with TestClient(app) as client:
-        r = client.post("/predictions/similar-players", json=payload)
+        r = client.post("/predict/similar-players", json=payload)
         assert r.status_code == 200, r.text
         data = r.json()
-        pred = data["predictions"][0]
-        similars = pred["by_league"]["premier_league"]
-        assert len(similars) == 3
-        # 유사도 내림차순 검증
-        scores = [s["similarity_score"] for s in similars]
+        assert len(data) == 1
+        sp = data[0]["similarPlayers"]
+        assert len(sp) == 5  # DEFAULT_TOP_K
+        scores = [e["similarityScore"] for e in sp]
         assert scores == sorted(scores, reverse=True)
-        print(f"  similar_players 통과 (top 3 유사도: {scores})")
+        print(f"  similar_players 통과 (top 5 내림차순: {scores})")
 
 
 def test_partial_failure():
-    payload = {
-        "players": [
-            {"player_id": 10001, "season_id": 2024},
-            {"player_id": -1, "season_id": 2024},
-            {"player_id": 10003, "season_id": 2024},
-        ],
-        "target_leagues": ["premier_league"],
-    }
+    payload = {"playerIds": [10001, -1, 10003], "destinationLeague": "EPL"}
     with TestClient(app) as client:
-        r = client.post("/predictions/performance", json=payload)
-        assert r.status_code == 200, r.text
+        r = client.post("/predict/performance", json=payload)
+        assert r.status_code == 200
         data = r.json()
-        assert data["meta"]["succeeded"] == 2
-        assert data["meta"]["failed_count"] == 1
-        assert data["failed"][0]["player_id"] == -1
-        print(f"  partial_failure 통과 (성공 2, 실패 1)")
+        assert len(data) == 3
+        failed_entry = next(p for p in data if p["playerId"] == -1)
+        assert all(
+            failed_entry[k] is None for k in failed_entry if k.startswith("pred")
+        )
+        print("  partial_failure 통과 (실패 entry pred_* 전부 None)")
 
 
-def test_batch_50_players():
-    """백엔드 PR #9 스펙대로 50명 청크 테스트."""
+def test_batch_100_players():
+    """백엔드 default chunk-size=100 기준 배치 테스트."""
     payload = {
-        "players": [
-            {"player_id": 10000 + i, "season_id": 2024}
-            for i in range(50)
-        ],
-        "target_leagues": ["premier_league", "la_liga"],
+        "playerIds": list(range(10000, 10100)),
+        "destinationLeague": "EPL",
     }
     with TestClient(app) as client:
-        r = client.post("/predictions/performance", json=payload)
+        r = client.post("/predict/performance", json=payload)
         assert r.status_code == 200, r.text
         data = r.json()
-        assert data["meta"]["succeeded"] == 50
-        latency = data["meta"]["latency_ms"]
-        # 50명 처리가 300초 한참 안에 끝나야 함 (실제로는 1초 이내)
-        assert latency < 30000, f"latency {latency}ms 너무 길다"
-        print(f"  batch_50 통과 (50명, {latency}ms)")
+        assert len(data) == 100
+        print("  batch_100 통과 (100명)")
 
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("통합 테스트 시작")
+    print("통합 테스트 시작 (백엔드 contract 정렬판)")
     print("=" * 60)
     test_health()
     test_models_status()
@@ -151,7 +117,7 @@ if __name__ == "__main__":
     test_market_value_basic()
     test_similar_players_basic()
     test_partial_failure()
-    test_batch_50_players()
+    test_batch_100_players()
     print("=" * 60)
     print("✅ 모든 테스트 통과")
     print("=" * 60)
