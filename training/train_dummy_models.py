@@ -26,12 +26,12 @@ ROOT = Path(__file__).parent.parent
 MODELS_DIR = ROOT / "app" / "models"
 DUMMY_VERSION = "v0.0.1-dummy"
 
-# 백엔드 PR #9 스펙 기준 포지션별 출력 키
+# AI 팀 Stage1 모델의 실제 (target, position) 분포와 일치시킨다.
 POSITION_OUTPUT_KEYS = {
-    "FW": ["goals", "shots", "dribbles", "key_passes", "pass_accuracy"],
-    "MF": ["passes", "key_passes", "tackles", "pass_accuracy"],
-    "DF": ["aerials_won", "blocked_shots", "pass_accuracy"],
-    "GK": ["saves", "cleansheets", "pass_accuracy"],
+    "FW": ["goals", "shots", "dribbles"],
+    "MF": ["key_passes", "passes", "tackles"],
+    "DF": ["aerials_won", "blocked_shots"],
+    "GK": ["pass_accuracy", "cleansheets"],
 }
 
 LEAGUES = ["EPL", "LA", "SA", "BL", "L1"]
