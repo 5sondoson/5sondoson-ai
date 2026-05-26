@@ -39,9 +39,13 @@ state: dict = {}
 
 
 def download_models_from_s3():
-    """서버 시작 시 S3에서 모델 다운로드.
+    """서버 시작 시 S3에서 모델 산출물 다운로드.
 
     MODEL_BUCKET 환경변수가 없으면 스킵 (로컬 개발).
+
+    S3 prefix -> 로컬 대상 디렉토리 매핑:
+    - models/        → app/models/        (dummy 모델, 옛 흐름)
+    - ai_pipeline/   → app/ai_pipeline/   (AI 팀 실모델)
     """
     bucket = os.getenv("MODEL_BUCKET")
     if not bucket:
@@ -55,29 +59,37 @@ def download_models_from_s3():
         logger.warning("boto3 미설치. S3 다운로드 스킵.")
         return
 
-    logger.info(f"S3에서 모델 다운로드: s3://{bucket}/models/")
-    s3 = boto3.client("s3")
-    local_dir = Path(__file__).parent / "models"
+    app_dir = Path(__file__).parent
+    prefixes = [
+        ("models/", app_dir / "models"),
+        ("ai_pipeline/", app_dir / "ai_pipeline"),
+    ]
+    allowed_ext = (".joblib", ".pkl", ".json", ".csv")
 
-    try:
-        paginator = s3.get_paginator("list_objects_v2")
-        n_downloaded = 0
-        for page in paginator.paginate(Bucket=bucket, Prefix="models/"):
-            for obj in page.get("Contents", []):
-                key = obj["Key"]
-                if not (key.endswith(".joblib") or key.endswith(".json")):
-                    continue
-                rel_path = key.replace("models/", "", 1)
-                local_path = local_dir / rel_path
-                local_path.parent.mkdir(parents=True, exist_ok=True)
-                if local_path.exists() and local_path.stat().st_size == obj["Size"]:
-                    continue
-                s3.download_file(bucket, key, str(local_path))
-                n_downloaded += 1
-        logger.info(f"S3 다운로드 완료: {n_downloaded}개 파일")
-    except ClientError as e:
-        logger.error(f"S3 다운로드 실패: {e}")
-        logger.warning("로컬 모델로 계속 진행")
+    s3 = boto3.client("s3")
+    paginator = s3.get_paginator("list_objects_v2")
+    total = 0
+
+    for prefix, local_root in prefixes:
+        try:
+            for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+                for obj in page.get("Contents", []):
+                    key = obj["Key"]
+                    if not key.endswith(allowed_ext):
+                        continue
+                    rel_path = key[len(prefix):]
+                    if not rel_path:
+                        continue
+                    local_path = local_root / rel_path
+                    local_path.parent.mkdir(parents=True, exist_ok=True)
+                    if local_path.exists() and local_path.stat().st_size == obj["Size"]:
+                        continue
+                    s3.download_file(bucket, key, str(local_path))
+                    total += 1
+        except ClientError as e:
+            logger.error("S3 다운로드 실패 (prefix=%s): %s", prefix, e)
+            logger.warning("로컬 파일로 계속 진행")
+    logger.info("S3 다운로드 완료: %d개 파일", total)
 
 
 @asynccontextmanager
@@ -98,17 +110,29 @@ async def lifespan(app: FastAPI):
         state["feature_store"] = MockFeatureStore()
         logger.info("MockFeatureStore 사용 (로컬 개발)")
 
+    # AI 팀 실모델 파이프라인 로드 시도. 실패하면 dummy 사용.
+    state["ai_pipeline"] = None
+    try:
+        from app.ai_pipeline_runner import AiPredictionPipeline
+        state["ai_pipeline"] = AiPredictionPipeline()
+        logger.info("AiPredictionPipeline 활성화 (Stage1+Stage2 실모델)")
+    except Exception as e:
+        logger.warning("AiPredictionPipeline 로드 실패 → dummy 모델 사용. %s", e)
+
     state["performance_handler"] = PerformanceHandler(
         registry=state["registry"],
         feature_store=state["feature_store"],
+        ai_pipeline=state["ai_pipeline"],
     )
     state["market_value_handler"] = MarketValueHandler(
         registry=state["registry"],
         feature_store=state["feature_store"],
+        ai_pipeline=state["ai_pipeline"],
     )
     state["similar_players_handler"] = SimilarPlayersHandler(
         registry=state["registry"],
         feature_store=state["feature_store"],
+        ai_pipeline=state["ai_pipeline"],
     )
 
     logger.info("서버 준비 완료")

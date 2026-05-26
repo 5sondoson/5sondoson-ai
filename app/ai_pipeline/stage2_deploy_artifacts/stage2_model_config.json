@@ -1,0 +1,320 @@
+{
+  "model_family": "Stage2 transfer-aware delta correction",
+  "prediction_formula": "final_after_pred = stage1_pred + stage2_delta_pred when apply_stage2=true, else stage1_pred",
+  "selection_metric": "min OOF stage2_after_mae",
+  "cv_method": {
+    "name": "5-fold KFold",
+    "n_splits": 5,
+    "shuffle": true,
+    "random_state": 42
+  },
+  "source_experiment": {
+    "best_csv": "stage2/stage2_hierarchical_top3_100trials_best.csv",
+    "trials_csv": "stage2/stage2_hierarchical_top3_100trials_trials.csv",
+    "source_manifest": "stage2\\stage2_hierarchical_top3_100trials_models\\stage2_hierarchical_top3_100trials_manifest.json"
+  },
+  "feature_engineering": {
+    "source_league": "split transfer_path by \" -> \", left side",
+    "destination_league": "split transfer_path by \" -> \", right side"
+  },
+  "models": [
+    {
+      "target": "delta_stat_accurate_passes_percentage_total",
+      "target_short_name": "accurate_passes_%",
+      "stage1_pred_col": "stage1_pred_stat_accurate_passes_percentage_total_next",
+      "after_col": "after_stat_accurate_passes_percentage_total",
+      "model_file": "models/stage2_delta_stat_accurate_passes_percentage_total_xgboost_hierarchical_top3_100trial.joblib",
+      "model_type": "xgboost",
+      "feature_set": "A_stage1_transfer",
+      "input_features": [
+        "stage1_pred",
+        "transfer_path"
+      ],
+      "params": {
+        "colsample_bytree": 1.0,
+        "learning_rate": 0.12024431425228842,
+        "max_depth": 1,
+        "min_child_weight": 8.0,
+        "n_estimators": 200,
+        "reg_alpha": 0.0002946820230129392,
+        "reg_lambda": 0.3243347015988277,
+        "subsample": 1.0
+      },
+      "apply_stage2": false,
+      "fallback_when_not_improved": "stage1_pred",
+      "cv_metrics": {
+        "oof_delta_r2": -0.08469575162331178,
+        "baseline_after_mae": 7.356005700673503,
+        "stage2_after_mae": 7.659063651408303,
+        "after_mae_improvement_pct": -0.041198710695269404
+      },
+      "n_total": 35
+    },
+    {
+      "target": "delta_stat_aeriels_won_total_per90",
+      "target_short_name": "aerials_won",
+      "stage1_pred_col": "stage1_pred_stat_aeriels_won_total_per90_next",
+      "after_col": "after_stat_aeriels_won_total_per90",
+      "model_file": "models/stage2_delta_stat_aeriels_won_total_per90_random_forest_hierarchical_top3_100trial.joblib",
+      "model_type": "random_forest",
+      "feature_set": "E_stage1_source_dest_age",
+      "input_features": [
+        "stage1_pred",
+        "source_league",
+        "destination_league",
+        "player_age_before"
+      ],
+      "params": {
+        "bootstrap": true,
+        "max_depth": 10,
+        "max_features": 1.0,
+        "min_samples_leaf": 5,
+        "min_samples_split": 20,
+        "n_estimators": 500
+      },
+      "apply_stage2": true,
+      "fallback_when_not_improved": "stage1_pred",
+      "cv_metrics": {
+        "oof_delta_r2": 0.09429597254526645,
+        "baseline_after_mae": 0.5393759674433461,
+        "stage2_after_mae": 0.4728350738955859,
+        "after_mae_improvement_pct": 0.12336644115451706
+      },
+      "n_total": 211
+    },
+    {
+      "target": "delta_stat_blocked_shots_total_per90",
+      "target_short_name": "blocked_shots",
+      "stage1_pred_col": "stage1_pred_stat_blocked_shots_total_per90_next",
+      "after_col": "after_stat_blocked_shots_total_per90",
+      "model_file": "models/stage2_delta_stat_blocked_shots_total_per90_elasticnet_hierarchical_top3_100trial.joblib",
+      "model_type": "elasticnet",
+      "feature_set": "A_stage1_transfer",
+      "input_features": [
+        "stage1_pred",
+        "transfer_path"
+      ],
+      "params": {
+        "alpha": 0.03537311446058988,
+        "l1_ratio": 0.2
+      },
+      "apply_stage2": false,
+      "fallback_when_not_improved": "stage1_pred",
+      "cv_metrics": {
+        "oof_delta_r2": 0.001805516253441497,
+        "baseline_after_mae": 0.17009428890192155,
+        "stage2_after_mae": 0.1711660359730301,
+        "after_mae_improvement_pct": -0.006300899801089324
+      },
+      "n_total": 205
+    },
+    {
+      "target": "delta_stat_cleansheets_total",
+      "target_short_name": "cleansheets",
+      "stage1_pred_col": "stage1_pred_stat_cleansheets_total_next",
+      "after_col": "after_stat_cleansheets_total",
+      "model_file": "models/stage2_delta_stat_cleansheets_total_random_forest_hierarchical_top3_100trial.joblib",
+      "model_type": "random_forest",
+      "feature_set": "E_stage1_source_dest_age",
+      "input_features": [
+        "stage1_pred",
+        "source_league",
+        "destination_league",
+        "player_age_before"
+      ],
+      "params": {
+        "bootstrap": false,
+        "max_depth": 5,
+        "max_features": 1.0,
+        "min_samples_leaf": 5,
+        "min_samples_split": 20,
+        "n_estimators": 800
+      },
+      "apply_stage2": true,
+      "fallback_when_not_improved": "stage1_pred",
+      "cv_metrics": {
+        "oof_delta_r2": 0.1670010077265427,
+        "baseline_after_mae": 3.648518518518518,
+        "stage2_after_mae": 2.447375982042638,
+        "after_mae_improvement_pct": 0.3292137700218127
+      },
+      "n_total": 27
+    },
+    {
+      "target": "delta_stat_goals_total_per90",
+      "target_short_name": "goals",
+      "stage1_pred_col": "stage1_pred_stat_goals_total_per90_next",
+      "after_col": "after_stat_goals_total_per90",
+      "model_file": "models/stage2_delta_stat_goals_total_per90_random_forest_hierarchical_top3_100trial.joblib",
+      "model_type": "random_forest",
+      "feature_set": "A_stage1_transfer",
+      "input_features": [
+        "stage1_pred",
+        "transfer_path"
+      ],
+      "params": {
+        "bootstrap": false,
+        "max_depth": 3,
+        "max_features": "sqrt",
+        "min_samples_leaf": 1,
+        "min_samples_split": 8,
+        "n_estimators": 200
+      },
+      "apply_stage2": true,
+      "fallback_when_not_improved": "stage1_pred",
+      "cv_metrics": {
+        "oof_delta_r2": 0.12197262740508852,
+        "baseline_after_mae": 0.1636820251876998,
+        "stage2_after_mae": 0.12316541891023206,
+        "after_mae_improvement_pct": 0.24753241066638787
+      },
+      "n_total": 148
+    },
+    {
+      "target": "delta_stat_key_passes_total_per90",
+      "target_short_name": "key_passes",
+      "stage1_pred_col": "stage1_pred_stat_key_passes_total_per90_next",
+      "after_col": "after_stat_key_passes_total_per90",
+      "model_file": "models/stage2_delta_stat_key_passes_total_per90_elasticnet_hierarchical_top3_100trial.joblib",
+      "model_type": "elasticnet",
+      "feature_set": "F_stage1_source_dest_minutes",
+      "input_features": [
+        "stage1_pred",
+        "source_league",
+        "destination_league",
+        "before_stat_minutes_played_total_num"
+      ],
+      "params": {
+        "alpha": 0.12769264738716307,
+        "l1_ratio": 0.05
+      },
+      "apply_stage2": true,
+      "fallback_when_not_improved": "stage1_pred",
+      "cv_metrics": {
+        "oof_delta_r2": 0.08659932684554361,
+        "baseline_after_mae": 0.4670115961146855,
+        "stage2_after_mae": 0.3945200676979236,
+        "after_mae_improvement_pct": 0.1552242578553873
+      },
+      "n_total": 196
+    },
+    {
+      "target": "delta_stat_passes_total_per90",
+      "target_short_name": "passes",
+      "stage1_pred_col": "stage1_pred_stat_passes_total_per90_next",
+      "after_col": "after_stat_passes_total_per90",
+      "model_file": "models/stage2_delta_stat_passes_total_per90_random_forest_hierarchical_top3_100trial.joblib",
+      "model_type": "random_forest",
+      "feature_set": "E_stage1_source_dest_age",
+      "input_features": [
+        "stage1_pred",
+        "source_league",
+        "destination_league",
+        "player_age_before"
+      ],
+      "params": {
+        "bootstrap": true,
+        "max_depth": 8,
+        "max_features": "sqrt",
+        "min_samples_leaf": 12,
+        "min_samples_split": 12,
+        "n_estimators": 350
+      },
+      "apply_stage2": true,
+      "fallback_when_not_improved": "stage1_pred",
+      "cv_metrics": {
+        "oof_delta_r2": 0.02999110349129741,
+        "baseline_after_mae": 9.150557804701252,
+        "stage2_after_mae": 7.686708002772224,
+        "after_mae_improvement_pct": 0.1599738325435146
+      },
+      "n_total": 197
+    },
+    {
+      "target": "delta_stat_shots_total_total_per90",
+      "target_short_name": "shots",
+      "stage1_pred_col": "stage1_pred_stat_shots_total_total_per90_next",
+      "after_col": "after_stat_shots_total_total_per90",
+      "model_file": "models/stage2_delta_stat_shots_total_total_per90_ridge_hierarchical_top3_100trial.joblib",
+      "model_type": "ridge",
+      "feature_set": "E_stage1_source_dest_age",
+      "input_features": [
+        "stage1_pred",
+        "source_league",
+        "destination_league",
+        "player_age_before"
+      ],
+      "params": {
+        "alpha": 124.27789591365169
+      },
+      "apply_stage2": true,
+      "fallback_when_not_improved": "stage1_pred",
+      "cv_metrics": {
+        "oof_delta_r2": 0.07162372153684826,
+        "baseline_after_mae": 0.7281773753895574,
+        "stage2_after_mae": 0.5692383971268076,
+        "after_mae_improvement_pct": 0.2182695914957826
+      },
+      "n_total": 173
+    },
+    {
+      "target": "delta_stat_successful_dribbles_total_per90",
+      "target_short_name": "successful_dribbles",
+      "stage1_pred_col": "stage1_pred_stat_successful_dribbles_total_per90_next",
+      "after_col": "after_stat_successful_dribbles_total_per90",
+      "model_file": "models/stage2_delta_stat_successful_dribbles_total_per90_ridge_hierarchical_top3_100trial.joblib",
+      "model_type": "ridge",
+      "feature_set": "E_stage1_source_dest_age",
+      "input_features": [
+        "stage1_pred",
+        "source_league",
+        "destination_league",
+        "player_age_before"
+      ],
+      "params": {
+        "alpha": 43.99194366497704
+      },
+      "apply_stage2": true,
+      "fallback_when_not_improved": "stage1_pred",
+      "cv_metrics": {
+        "oof_delta_r2": 0.05040010392878158,
+        "baseline_after_mae": 0.5443269483752453,
+        "stage2_after_mae": 0.540632157407251,
+        "after_mae_improvement_pct": 0.006787815629968045
+      },
+      "n_total": 148
+    },
+    {
+      "target": "delta_stat_tackles_total_per90",
+      "target_short_name": "tackles",
+      "stage1_pred_col": "stage1_pred_stat_tackles_total_per90_next",
+      "after_col": "after_stat_tackles_total_per90",
+      "model_file": "models/stage2_delta_stat_tackles_total_per90_random_forest_hierarchical_top3_100trial.joblib",
+      "model_type": "random_forest",
+      "feature_set": "D_stage1_source_dest_position",
+      "input_features": [
+        "stage1_pred",
+        "source_league",
+        "destination_league",
+        "position_code"
+      ],
+      "params": {
+        "bootstrap": false,
+        "max_depth": 2,
+        "max_features": 0.5,
+        "min_samples_leaf": 1,
+        "min_samples_split": 20,
+        "n_estimators": 350
+      },
+      "apply_stage2": true,
+      "fallback_when_not_improved": "stage1_pred",
+      "cv_metrics": {
+        "oof_delta_r2": 0.035850413677392834,
+        "baseline_after_mae": 0.5764632157139086,
+        "stage2_after_mae": 0.5626237081846439,
+        "after_mae_improvement_pct": 0.024007616014363412
+      },
+      "n_total": 197
+    }
+  ]
+}
