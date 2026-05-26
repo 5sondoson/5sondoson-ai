@@ -65,6 +65,14 @@ class MockFeatureStore:
         """선수가 DB에 있는지. mock 에서는 음수만 없는 걸로 처리."""
         return player_id > 0
 
+    def get_cached_performance(
+        self,
+        player_ids: list[int],
+        destination_league: str,
+    ) -> dict[int, dict]:
+        """Mock 에서는 캐시 없음 — 항상 miss."""
+        return {}
+
 
 def _build_db_url() -> str:
     """환경변수에서 MySQL SQLAlchemy URL 조립."""
@@ -168,3 +176,45 @@ class DbFeatureStore:
                 {"pid": player_id},
             ).first()
             return row is not None
+
+    def get_cached_performance(
+        self,
+        player_ids: list[int],
+        destination_league: str,
+    ) -> dict[int, dict]:
+        """캐시 테이블 player_performance_predictions 에서 (player_id, destination_league) 기준 조회.
+
+        반환: player_id -> dict (백엔드 응답 필드와 동일 키만 포함).
+        miss 인 player_id 는 결과 dict 에 없음.
+        """
+        if not player_ids:
+            return {}
+        from sqlalchemy import bindparam, text
+        query = text("""
+            SELECT
+                player_id,
+                pred_goals_total_per90,
+                pred_shots_total_per90,
+                pred_successful_dribbles_per90,
+                pred_key_passes_per90,
+                pred_passes_total_per90,
+                pred_tackles_total_per90,
+                pred_aeriels_won_per90,
+                pred_blocked_shots_per90,
+                pred_accurate_passes_pct,
+                pred_cleansheets_total
+            FROM player_performance_predictions
+            WHERE destination_league = :league
+              AND player_id IN :pids
+        """).bindparams(bindparam("pids", expanding=True))
+        with self.engine.connect() as conn:
+            rows = conn.execute(
+                query,
+                {"league": destination_league, "pids": list(player_ids)},
+            ).fetchall()
+        out: dict[int, dict] = {}
+        for r in rows:
+            d = dict(r._mapping)
+            pid = int(d.pop("player_id"))
+            out[pid] = {k: (float(v) if v is not None else None) for k, v in d.items()}
+        return out
