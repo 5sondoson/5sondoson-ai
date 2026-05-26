@@ -161,24 +161,56 @@ class AiPredictionPipeline:
         self,
         player_rows: list[dict[str, Any]],
         destination_league: League,
+        cached_by_pid: Optional[dict[int, dict[str, float]]] = None,
     ) -> list[Optional[int]]:
         """Stage1+Stage2 결과를 활용해 market_value 모델로 EUR 예측.
+
+        cached_by_pid 가 있으면 해당 player_id 는 Stage1+Stage2 호출을 스킵하고
+        캐시 값을 stage2 final_after_pred 로 간주해 pred_after_* 입력에 사용한다.
+        형식: {player_id: {target_short_name: value}} (e.g. {123: {"goals": 0.45}}).
 
         반환 길이는 player_rows 와 동일. 예측 실패한 row 는 None.
         """
         if not self._mv_model or not player_rows:
             return [None] * len(player_rows)
 
-        stage2_df = self.predict(player_rows, destination_league)
+        cached_by_pid = cached_by_pid or {}
+        pid_to_idx: dict[int, int] = {}
+        miss_rows: list[dict[str, Any]] = []
+        miss_local_to_global: list[int] = []
+        for i, row in enumerate(player_rows):
+            pid = row.get("player_id")
+            if pid is not None:
+                pid_to_idx[int(pid)] = i
+            if pid is None or int(pid) not in cached_by_pid:
+                miss_local_to_global.append(i)
+                miss_rows.append(row)
 
-        # row_index → pred_after_* dict
+        # row_index → pred_after_* dict (player_rows 전역 인덱스 기준)
         pred_after_by_idx: dict[int, dict[str, float]] = {}
-        for _, r in stage2_df.iterrows():
-            ridx = int(r["row_index"])
-            field = _TARGET_TO_PRED_AFTER.get(r["target_short_name"])
-            value = r["final_after_pred"]
-            if field and not pd.isna(value):
-                pred_after_by_idx.setdefault(ridx, {})[field] = float(value)
+
+        # 캐시 hit: 캐시된 short_name → pred_after_* 입력
+        for pid, short_to_val in cached_by_pid.items():
+            gidx = pid_to_idx.get(int(pid))
+            if gidx is None:
+                continue
+            for short_name, value in short_to_val.items():
+                field = _TARGET_TO_PRED_AFTER.get(short_name)
+                if field and value is not None:
+                    pred_after_by_idx.setdefault(gidx, {})[field] = float(value)
+
+        # 캐시 miss: Stage1+Stage2 호출 후 stage2_df 에서 pred_after_* 추출
+        if miss_rows:
+            stage2_df = self.predict(miss_rows, destination_league)
+            for _, r in stage2_df.iterrows():
+                local_idx = int(r["row_index"])
+                if local_idx >= len(miss_local_to_global):
+                    continue
+                gidx = miss_local_to_global[local_idx]
+                field = _TARGET_TO_PRED_AFTER.get(r["target_short_name"])
+                value = r["final_after_pred"]
+                if field and not pd.isna(value):
+                    pred_after_by_idx.setdefault(gidx, {})[field] = float(value)
 
         # market_value 모델 입력 구성 — league 컬럼은 enum 이름("PREMIER_LEAGUE") 사용
         prepared: list[dict[str, Any]] = []
