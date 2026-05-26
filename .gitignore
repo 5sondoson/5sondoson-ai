@@ -11,3 +11,9 @@ __pycache__/
 app/models/performance/
 app/models/market_value/
 app/models/similar/
+
+# AI 팀 실모델 binary (S3 에서 startup 시 다운로드)
+app/ai_pipeline/stage1_deploy_artifacts/models/
+app/ai_pipeline/stage2_deploy_artifacts/models/
+app/ai_pipeline/market_value/*model*.pkl
+app/ai_pipeline/market_value/*model*.joblib

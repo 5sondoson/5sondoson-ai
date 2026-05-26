@@ -1,0 +1,60 @@
+{
+  "artifact_name": "similar_player_recommender",
+  "candidate_pool": "big_five_candidate_pool.csv",
+  "candidate_pool_rule": {
+    "season": "latest available Big Five season at build time",
+    "league_filter": "destination_league",
+    "position_filter": "same position_code",
+    "minutes_threshold": "no hard threshold; candidate minutes confidence is returned"
+  },
+  "source_leagues": [
+    "Eredivisie",
+    "Liga Portugal",
+    "Pro League"
+  ],
+  "candidate_leagues": [
+    "Premier League",
+    "La Liga",
+    "Bundesliga",
+    "Serie A",
+    "Ligue 1"
+  ],
+  "similarity": {
+    "scaler": "StandardScaler",
+    "metric": "cosine_similarity",
+    "feature_weight": "equal_weight"
+  },
+  "position_vector_features": {
+    "attacker": [
+      "goals",
+      "shots",
+      "successful_dribbles",
+      "player_age"
+    ],
+    "defender": [
+      "aerials_won",
+      "blocked_shots",
+      "player_age"
+    ],
+    "goalkeeper": [
+      "accurate_passes_%",
+      "cleansheets",
+      "player_age"
+    ],
+    "midfielder": [
+      "key_passes",
+      "passes",
+      "tackles",
+      "player_age"
+    ]
+  },
+  "output": {
+    "main_table": "recommendations",
+    "score_column": "similarity",
+    "supporting_tables": [
+      "query_vector",
+      "stage1_predictions",
+      "stage2_predictions"
+    ]
+  }
+}

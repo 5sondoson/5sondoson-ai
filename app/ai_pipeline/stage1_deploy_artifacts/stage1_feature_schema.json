@@ -1,0 +1,1184 @@
+{
+  "targets": {
+    "stat_goals_total_per90_next": {
+      "position": "attacker",
+      "required_features": [
+        {
+          "name": "stat_aeriels_won_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.18877551020408162,
+          "example_non_null": "8.0"
+        },
+        {
+          "name": "stat_big_chances_missed_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.22959183673469388,
+          "example_non_null": "3.0"
+        },
+        {
+          "name": "player_weight",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.015306122448979591,
+          "example_non_null": "68.0"
+        },
+        {
+          "name": "stat_goals_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.01020408163265306,
+          "example_non_null": "0.1363120030291556"
+        },
+        {
+          "name": "stat_total_crosses_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.20918367346938777,
+          "example_non_null": "43.0"
+        },
+        {
+          "name": "stat_interceptions_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.21173469387755103,
+          "example_non_null": "3.0"
+        },
+        {
+          "name": "stat_team_lost_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.2780612244897959,
+          "example_non_null": "9.0"
+        },
+        {
+          "name": "stat_substitutions_in",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.007653061224489796,
+          "example_non_null": "5.0"
+        },
+        {
+          "name": "stat_shots_blocked_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.20408163265306123,
+          "example_non_null": "5.0"
+        },
+        {
+          "name": "stat_accurate_passes_percentage_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.18877551020408162,
+          "example_non_null": "81.25"
+        },
+        {
+          "name": "stat_successful_dribbles_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.5382653061224489,
+          "example_non_null": "0.399260628465804"
+        },
+        {
+          "name": "stat_minutes_played_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "2641.0"
+        },
+        {
+          "name": "stat_team_wins_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.2755102040816326,
+          "example_non_null": "8.0"
+        },
+        {
+          "name": "stat_key_passes_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.1913265306122449,
+          "example_non_null": "12.0"
+        },
+        {
+          "name": "stat_penalties_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.5255102040816326,
+          "example_non_null": "5.0"
+        },
+        {
+          "name": "stat_shots_off_target_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.45408163265306123,
+          "example_non_null": "3.0"
+        },
+        {
+          "name": "team_short_code",
+          "dtype": "object",
+          "missing_rate_train_cv": 0.058673469387755105,
+          "example_non_null": "RIO"
+        },
+        {
+          "name": "player_nationality_id",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "20.0"
+        },
+        {
+          "name": "player_age",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "26.41478439425052"
+        },
+        {
+          "name": "stat_hit_woodwork_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.42346938775510207,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_average_points_per_game_average",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.2857142857142857,
+          "example_non_null": "0.09"
+        },
+        {
+          "name": "country_name",
+          "dtype": "object",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "Portugal"
+        },
+        {
+          "name": "stat_goals_conceded_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "41.0"
+        },
+        {
+          "name": "team_name",
+          "dtype": "object",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "Rio Ave"
+        },
+        {
+          "name": "player_age_sq",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "697.7408345947405"
+        },
+        {
+          "name": "stat_goals_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.01020408163265306,
+          "example_non_null": "4.0"
+        },
+        {
+          "name": "stat_injuries_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.6964285714285714,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_rating_lowest",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.21683673469387754,
+          "example_non_null": "6.63"
+        },
+        {
+          "name": "player_height",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "176.0"
+        },
+        {
+          "name": "stat_bench_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.10204081632653061,
+          "example_non_null": "5.0"
+        }
+      ],
+      "current_feature": "stat_goals_total_per90",
+      "minutes_feature": "stat_minutes_played_total"
+    },
+    "stat_shots_total_total_per90_next": {
+      "position": "attacker",
+      "required_features": [
+        {
+          "name": "stat_shots_total_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.06451612903225806,
+          "example_non_null": "0.5741626794258373"
+        },
+        {
+          "name": "stat_total_crosses_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.08870967741935484,
+          "example_non_null": "43.0"
+        },
+        {
+          "name": "stat_shots_on_target_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.06451612903225806,
+          "example_non_null": "4.0"
+        },
+        {
+          "name": "jersey_number",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "21.0"
+        },
+        {
+          "name": "stat_cleansheets_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.27419354838709675,
+          "example_non_null": "4.0"
+        },
+        {
+          "name": "stat_goals_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.004032258064516129,
+          "example_non_null": "9.0"
+        },
+        {
+          "name": "stat_accurate_crosses_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.20161290322580644,
+          "example_non_null": "9.0"
+        },
+        {
+          "name": "player_height",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "189.0"
+        },
+        {
+          "name": "stat_yellowcards_home",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07661290322580645,
+          "example_non_null": "0.0"
+        },
+        {
+          "name": "stat_shots_blocked_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.08064516129032258,
+          "example_non_null": "5.0"
+        },
+        {
+          "name": "stat_accurate_passes_percentage_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.06451612903225806,
+          "example_non_null": "81.25"
+        },
+        {
+          "name": "stat_injuries_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.6290322580645161,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "player_weight",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.008064516129032258,
+          "example_non_null": "90.0"
+        },
+        {
+          "name": "stat_offsides_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.08870967741935484,
+          "example_non_null": "3.0"
+        },
+        {
+          "name": "stat_aeriels_won_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.06451612903225806,
+          "example_non_null": "8.0"
+        }
+      ],
+      "current_feature": "stat_shots_total_total_per90",
+      "minutes_feature": "stat_minutes_played_total"
+    },
+    "stat_successful_dribbles_total_per90_next": {
+      "position": "attacker",
+      "required_features": [
+        {
+          "name": "stat_successful_dribbles_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.2320675105485232,
+          "example_non_null": "0.399260628465804"
+        },
+        {
+          "name": "stat_aeriels_won_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.04219409282700422,
+          "example_non_null": "7.0"
+        },
+        {
+          "name": "stat_offsides_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.06329113924050633,
+          "example_non_null": "10.0"
+        },
+        {
+          "name": "stat_crosses_blocked_crosses_blocked",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.22362869198312235,
+          "example_non_null": "33.0"
+        },
+        {
+          "name": "stat_dribble_attempts_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.21940928270042195,
+          "example_non_null": "28.0"
+        },
+        {
+          "name": "player_age_sq",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "551.429976092997"
+        },
+        {
+          "name": "stat_clearances_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.05063291139240506,
+          "example_non_null": "9.0"
+        },
+        {
+          "name": "stat_interceptions_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.05907172995780591,
+          "example_non_null": "18.0"
+        },
+        {
+          "name": "stat_substitutions_in",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "7.0"
+        },
+        {
+          "name": "stat_yellowcards_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.10548523206751055,
+          "example_non_null": "2.0"
+        },
+        {
+          "name": "stat_big_chances_created_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.11392405063291139,
+          "example_non_null": "3.0"
+        },
+        {
+          "name": "stat_duels_won_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.04219409282700422,
+          "example_non_null": "134.0"
+        },
+        {
+          "name": "stat_shots_off_target_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.3755274261603376,
+          "example_non_null": "8.0"
+        },
+        {
+          "name": "stat_total_duels_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.04219409282700422,
+          "example_non_null": "280.0"
+        },
+        {
+          "name": "stat_tackles_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.04219409282700422,
+          "example_non_null": "44.0"
+        },
+        {
+          "name": "country_name",
+          "dtype": "object",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "Portugal"
+        },
+        {
+          "name": "stat_team_wins_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.15611814345991562,
+          "example_non_null": "6.0"
+        },
+        {
+          "name": "stat_appearances_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "20.0"
+        },
+        {
+          "name": "stat_hit_woodwork_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.29535864978902954,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "league_name",
+          "dtype": "object",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "Liga Portugal"
+        },
+        {
+          "name": "stat_lineups_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "13.0"
+        },
+        {
+          "name": "stat_penalties_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.4219409282700422,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_total_crosses_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.06751054852320675,
+          "example_non_null": "56.0"
+        },
+        {
+          "name": "stat_key_passes_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.04219409282700422,
+          "example_non_null": "27.0"
+        },
+        {
+          "name": "stat_shots_blocked_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.05485232067510549,
+          "example_non_null": "7.0"
+        },
+        {
+          "name": "stat_team_draws_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.15611814345991562,
+          "example_non_null": "2.0"
+        },
+        {
+          "name": "stat_rating_lowest",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.04219409282700422,
+          "example_non_null": "5.81"
+        },
+        {
+          "name": "stat_yellowcards_home",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.10548523206751055,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_shots_total_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.04219409282700422,
+          "example_non_null": "24.0"
+        },
+        {
+          "name": "stat_cleansheets_home",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.15611814345991562,
+          "example_non_null": "3.0"
+        },
+        {
+          "name": "stat_penalties_scored",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.4219409282700422,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_goals_penalties",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.008438818565400843,
+          "example_non_null": "0.0"
+        },
+        {
+          "name": "team_name",
+          "dtype": "object",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "Desportivo Aves"
+        },
+        {
+          "name": "stat_yellowcards_away",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.10548523206751055,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_goals_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.008438818565400843,
+          "example_non_null": "0.2307692307692307"
+        },
+        {
+          "name": "stat_big_chances_missed_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.08016877637130802,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "player_age",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "23.48254620123204"
+        },
+        {
+          "name": "player_nationality_id",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "20.0"
+        },
+        {
+          "name": "league_key",
+          "dtype": "object",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "primeira_liga"
+        },
+        {
+          "name": "stat_cleansheets_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.15611814345991562,
+          "example_non_null": "4.0"
+        }
+      ],
+      "current_feature": "stat_successful_dribbles_total_per90",
+      "minutes_feature": "stat_minutes_played_total"
+    },
+    "stat_aeriels_won_total_per90_next": {
+      "position": "defender",
+      "required_features": [
+        {
+          "name": "stat_aeriels_won_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.06290956749672345,
+          "example_non_null": "0.2121212121212121"
+        },
+        {
+          "name": "player_height",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "176.0"
+        },
+        {
+          "name": "stat_aeriels_won_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.06290956749672345,
+          "example_non_null": "7.0"
+        },
+        {
+          "name": "stat_assists_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.399737876802097,
+          "example_non_null": "5.0"
+        },
+        {
+          "name": "stat_bench_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.254259501965924,
+          "example_non_null": "11.0"
+        },
+        {
+          "name": "stat_shots_blocked_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.16382699868938402,
+          "example_non_null": "3.0"
+        },
+        {
+          "name": "stat_shots_on_target_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.16382699868938402,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_blocked_shots_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.08125819134993446,
+          "example_non_null": "0.0303030303030303"
+        },
+        {
+          "name": "stat_big_chances_missed_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.5425950196592398,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_fouls_drawn_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0655307994757536,
+          "example_non_null": "16.0"
+        },
+        {
+          "name": "stat_team_draws_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.23722149410222804,
+          "example_non_null": "6.0"
+        },
+        {
+          "name": "stat_accurate_crosses_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.36828309305373524,
+          "example_non_null": "5.0"
+        },
+        {
+          "name": "stat_goals_conceded_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "50.0"
+        },
+        {
+          "name": "stat_rating_highest",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.09305373525557012,
+          "example_non_null": "7.34"
+        },
+        {
+          "name": "stat_shots_off_target_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.4692005242463958,
+          "example_non_null": "6.0"
+        },
+        {
+          "name": "stat_interceptions_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.05504587155963303,
+          "example_non_null": "14.0"
+        },
+        {
+          "name": "stat_goals_goals",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.4076015727391874,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_average_points_per_game_average",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.5347313237221494,
+          "example_non_null": "0.03"
+        },
+        {
+          "name": "jersey_number",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "8.0"
+        },
+        {
+          "name": "stat_passes_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.053735255570117955,
+          "example_non_null": "296.0"
+        }
+      ],
+      "current_feature": "stat_aeriels_won_total_per90",
+      "minutes_feature": "stat_minutes_played_total"
+    },
+    "stat_blocked_shots_total_per90_next": {
+      "position": "defender",
+      "required_features": [
+        {
+          "name": "stat_clearances_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.057640750670241284,
+          "example_non_null": "0.3636363636363636"
+        },
+        {
+          "name": "stat_blocked_shots_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.08042895442359249,
+          "example_non_null": "0.0303030303030303"
+        },
+        {
+          "name": "stat_total_crosses_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.17560321715817695,
+          "example_non_null": "33.0"
+        },
+        {
+          "name": "stat_clearances_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.057640750670241284,
+          "example_non_null": "12.0"
+        },
+        {
+          "name": "player_height",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "176.0"
+        },
+        {
+          "name": "stat_key_passes_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.08981233243967829,
+          "example_non_null": "11.0"
+        },
+        {
+          "name": "stat_blocked_shots_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.08042895442359249,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "player_age",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "26.77891854893908"
+        },
+        {
+          "name": "stat_aeriels_won_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.06300268096514745,
+          "example_non_null": "0.2121212121212121"
+        },
+        {
+          "name": "player_weight",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.021447721179624665,
+          "example_non_null": "77.0"
+        },
+        {
+          "name": "stat_dispossessed_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.11126005361930295,
+          "example_non_null": "4.0"
+        },
+        {
+          "name": "stat_cleansheets_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.23726541554959785,
+          "example_non_null": "13.0"
+        },
+        {
+          "name": "stat_shots_total_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07506702412868632,
+          "example_non_null": "6.0"
+        },
+        {
+          "name": "stat_interceptions_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.054959785522788206,
+          "example_non_null": "14.0"
+        },
+        {
+          "name": "stat_minutes_played_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "2970.0"
+        }
+      ],
+      "current_feature": "stat_blocked_shots_total_per90",
+      "minutes_feature": "stat_minutes_played_total"
+    },
+    "stat_accurate_passes_percentage_total_next": {
+      "position": "goalkeeper",
+      "required_features": [
+        {
+          "name": "stat_goals_conceded_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "42.0"
+        },
+        {
+          "name": "stat_accurate_passes_percentage_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0794392523364486,
+          "example_non_null": "54.19"
+        },
+        {
+          "name": "stat_duels_won_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.09345794392523364,
+          "example_non_null": "4.0"
+        },
+        {
+          "name": "stat_cleansheets_home",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.205607476635514,
+          "example_non_null": "4.0"
+        },
+        {
+          "name": "stat_team_wins_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.2102803738317757,
+          "example_non_null": "14.0"
+        },
+        {
+          "name": "stat_team_lost_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.2102803738317757,
+          "example_non_null": "5.0"
+        },
+        {
+          "name": "stat_saves_insidebox_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0794392523364486,
+          "example_non_null": "25.0"
+        },
+        {
+          "name": "stat_aeriels_won_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.11214953271028037,
+          "example_non_null": "2.0"
+        },
+        {
+          "name": "player_height",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "190.0"
+        },
+        {
+          "name": "player_age",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "25.50034223134839"
+        }
+      ],
+      "current_feature": "stat_accurate_passes_percentage_total",
+      "minutes_feature": "stat_minutes_played_total"
+    },
+    "stat_cleansheets_total_next": {
+      "position": "goalkeeper",
+      "required_features": [
+        {
+          "name": "stat_team_wins_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.1919191919191919,
+          "example_non_null": "9.0"
+        },
+        {
+          "name": "stat_goals_conceded_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "30.0"
+        },
+        {
+          "name": "stat_cleansheets_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.18686868686868688,
+          "example_non_null": "6.0"
+        },
+        {
+          "name": "stat_big_chances_created_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.8838383838383839,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_team_draws_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.1919191919191919,
+          "example_non_null": "7.0"
+        },
+        {
+          "name": "stat_accurate_passes_percentage_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.16666666666666666,
+          "example_non_null": "82.08"
+        },
+        {
+          "name": "stat_rating_highest",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.17676767676767677,
+          "example_non_null": "6.94"
+        },
+        {
+          "name": "stat_yellowcards_home",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.25252525252525254,
+          "example_non_null": "0.0"
+        },
+        {
+          "name": "player_age_sq",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "710.9650998982909"
+        },
+        {
+          "name": "jersey_number",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "30.0"
+        },
+        {
+          "name": "stat_yellowcards_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.25252525252525254,
+          "example_non_null": "2.0"
+        },
+        {
+          "name": "stat_fouls_drawn_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.22727272727272727,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "team_name",
+          "dtype": "object",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "Lokeren"
+        },
+        {
+          "name": "stat_bench_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.5050505050505051,
+          "example_non_null": "3.0"
+        },
+        {
+          "name": "player_height",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "193.0"
+        }
+      ],
+      "current_feature": "stat_cleansheets_total",
+      "minutes_feature": "stat_minutes_played_total"
+    },
+    "stat_key_passes_total_per90_next": {
+      "position": "midfielder",
+      "required_features": [
+        {
+          "name": "stat_key_passes_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07692307692307693,
+          "example_non_null": "0.3046716316858497"
+        },
+        {
+          "name": "stat_assists_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.18461538461538463,
+          "example_non_null": "2.0"
+        },
+        {
+          "name": "stat_rating_average",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.10307692307692308,
+          "example_non_null": "8.16"
+        },
+        {
+          "name": "stat_interceptions_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07692307692307693,
+          "example_non_null": "2.0"
+        },
+        {
+          "name": "stat_total_crosses_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.08923076923076922,
+          "example_non_null": "13.0"
+        },
+        {
+          "name": "stat_clearances_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0876923076923077,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_yellowcards_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.03538461538461538,
+          "example_non_null": "2.0"
+        },
+        {
+          "name": "stat_accurate_passes_percentage_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07076923076923076,
+          "example_non_null": "87.34"
+        },
+        {
+          "name": "stat_rating_lowest",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.10307692307692308,
+          "example_non_null": "8.16"
+        },
+        {
+          "name": "stat_minutes_played_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "1477.0"
+        },
+        {
+          "name": "player_country_id",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "401.0"
+        },
+        {
+          "name": "stat_long_balls_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.38153846153846155,
+          "example_non_null": "12.0"
+        },
+        {
+          "name": "stat_redcards_home",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.9076923076923077,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_cleansheets_away",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.25076923076923074,
+          "example_non_null": "6.0"
+        },
+        {
+          "name": "stat_appearances_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "12.0"
+        },
+        {
+          "name": "stat_passes_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07076923076923076,
+          "example_non_null": "79.0"
+        },
+        {
+          "name": "league_key",
+          "dtype": "object",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "eredivisie"
+        },
+        {
+          "name": "stat_goals_goals",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.15846153846153846,
+          "example_non_null": "4.0"
+        },
+        {
+          "name": "stat_successful_dribbles_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.3769230769230769,
+          "example_non_null": "27.0"
+        },
+        {
+          "name": "stat_offsides_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.39692307692307693,
+          "example_non_null": "1.0"
+        }
+      ],
+      "current_feature": "stat_key_passes_total_per90",
+      "minutes_feature": "stat_minutes_played_total"
+    },
+    "stat_passes_total_per90_next": {
+      "position": "midfielder",
+      "required_features": [
+        {
+          "name": "stat_passes_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07076923076923076,
+          "example_non_null": "4.813811780636425"
+        },
+        {
+          "name": "stat_clearances_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0876923076923077,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_rating_average",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.10307692307692308,
+          "example_non_null": "8.16"
+        },
+        {
+          "name": "stat_dispossessed_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.08461538461538462,
+          "example_non_null": "2.0"
+        },
+        {
+          "name": "stat_fouls_drawn_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07538461538461538,
+          "example_non_null": "3.0"
+        },
+        {
+          "name": "stat_tackles_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07692307692307693,
+          "example_non_null": "0.1828029790115098"
+        },
+        {
+          "name": "stat_total_duels_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07076923076923076,
+          "example_non_null": "24.0"
+        },
+        {
+          "name": "stat_blocked_shots_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.18769230769230769,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_interceptions_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07692307692307693,
+          "example_non_null": "2.0"
+        },
+        {
+          "name": "player_nationality_id",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "401.0"
+        }
+      ],
+      "current_feature": "stat_passes_total_per90",
+      "minutes_feature": "stat_minutes_played_total"
+    },
+    "stat_tackles_total_per90_next": {
+      "position": "midfielder",
+      "required_features": [
+        {
+          "name": "stat_tackles_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07692307692307693,
+          "example_non_null": "0.1828029790115098"
+        },
+        {
+          "name": "stat_key_passes_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07692307692307693,
+          "example_non_null": "5.0"
+        },
+        {
+          "name": "stat_shots_total_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07846153846153846,
+          "example_non_null": "4.0"
+        },
+        {
+          "name": "stat_goals_conceded_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "25.0"
+        },
+        {
+          "name": "stat_offsides_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.39692307692307693,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_crosses_blocked_crosses_blocked",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.3169230769230769,
+          "example_non_null": "1.0"
+        },
+        {
+          "name": "stat_tackles_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07692307692307693,
+          "example_non_null": "3.0"
+        },
+        {
+          "name": "stat_total_crosses_total",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.08923076923076922,
+          "example_non_null": "13.0"
+        },
+        {
+          "name": "stat_passes_total_per90",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.07076923076923076,
+          "example_non_null": "4.813811780636425"
+        },
+        {
+          "name": "player_age_sq",
+          "dtype": "float64",
+          "missing_rate_train_cv": 0.0,
+          "example_non_null": "403.512124734308"
+        }
+      ],
+      "current_feature": "stat_tackles_total_per90",
+      "minutes_feature": "stat_minutes_played_total"
+    }
+  }
+}

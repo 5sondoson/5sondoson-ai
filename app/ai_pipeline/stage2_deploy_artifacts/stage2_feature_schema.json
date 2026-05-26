@@ -1,0 +1,36 @@
+{
+  "required_raw_columns": [
+    "before_stat_minutes_played_total_num",
+    "player_age_before",
+    "position_code",
+    "stage1_pred_stat_accurate_passes_percentage_total_next",
+    "stage1_pred_stat_aeriels_won_total_per90_next",
+    "stage1_pred_stat_blocked_shots_total_per90_next",
+    "stage1_pred_stat_cleansheets_total_next",
+    "stage1_pred_stat_goals_total_per90_next",
+    "stage1_pred_stat_key_passes_total_per90_next",
+    "stage1_pred_stat_passes_total_per90_next",
+    "stage1_pred_stat_shots_total_total_per90_next",
+    "stage1_pred_stat_successful_dribbles_total_per90_next",
+    "stage1_pred_stat_tackles_total_per90_next",
+    "transfer_path"
+  ],
+  "derived_columns": [
+    "source_league",
+    "destination_league"
+  ],
+  "model_input_feature_universe": [
+    "before_stat_minutes_played_total_num",
+    "destination_league",
+    "player_age_before",
+    "position_code",
+    "source_league",
+    "stage1_pred",
+    "transfer_path"
+  ],
+  "notes": [
+    "stage1_pred is created per target from the configured stage1_pred_col.",
+    "source_league and destination_league are derived from transfer_path formatted like \"Liga Portugal -> La Liga\".",
+    "If apply_stage2=false, serving should keep stage1_pred as final prediction for that target."
+  ]
+}
