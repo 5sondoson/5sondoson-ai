@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.features.store import MockFeatureStore
+from app.features.store import DbFeatureStore, MockFeatureStore
 from app.handlers.market_value import MarketValueHandler
 from app.handlers.performance import PerformanceHandler
 from app.handlers.similar_players import SimilarPlayersHandler
@@ -87,7 +87,17 @@ async def lifespan(app: FastAPI):
 
     models_dir = Path(__file__).parent / "models"
     state["registry"] = ModelRegistry(models_dir=models_dir)
-    state["feature_store"] = MockFeatureStore()
+
+    # 환경변수 DB_HOST 유무로 피처 스토어 분기.
+    # 운영(EC2): DB_HOST 설정 → 백엔드 RDS 조회
+    # 로컬:     DB_HOST 미설정 → Mock 사용
+    if os.getenv("DB_HOST"):
+        state["feature_store"] = DbFeatureStore()
+        logger.info("DbFeatureStore 사용 (백엔드 RDS)")
+    else:
+        state["feature_store"] = MockFeatureStore()
+        logger.info("MockFeatureStore 사용 (로컬 개발)")
+
     state["performance_handler"] = PerformanceHandler(
         registry=state["registry"],
         feature_store=state["feature_store"],
