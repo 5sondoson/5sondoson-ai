@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.schemas.enums import League
@@ -33,24 +33,61 @@ class ApiModel(BaseModel):
 # ============================================================
 
 class PerformanceRequest(ApiModel):
-    """백엔드 AiPerformanceRequest 와 동일."""
-    player_ids: list[int]
-    destination_league: League
+    """이적 후 퍼포먼스 예측 요청.
+
+    백엔드 어드민 배치가 선수를 50명 청크로 잘라 호출한다.
+    """
+    player_ids: list[int] = Field(
+        description="예측 대상 player_id 목록. 한 요청당 최대 50개 권장.",
+        examples=[[1, 2, 3, 4, 5]],
+    )
+    destination_league: League = Field(
+        description="이적 목적지 리그(5대 리그 중 하나). 값은 백엔드 League enum 의 코드(EPL/LA/BL/SA/L1).",
+        examples=["EPL"],
+    )
 
 
 class PerformancePrediction(ApiModel):
-    """백엔드 AiPerformancePrediction 와 동일."""
-    player_id: int
-    pred_goals_total_per90: Optional[float] = None
-    pred_shots_total_per90: Optional[float] = None
-    pred_successful_dribbles_per90: Optional[float] = None
-    pred_key_passes_per90: Optional[float] = None
-    pred_passes_total_per90: Optional[float] = None
-    pred_tackles_total_per90: Optional[float] = None
-    pred_aeriels_won_per90: Optional[float] = None
-    pred_blocked_shots_per90: Optional[float] = None
-    pred_accurate_passes_pct: Optional[float] = None
-    pred_cleensheets_total: Optional[float] = None
+    """선수 1명의 이적 후 퍼포먼스 예측 결과.
+
+    모든 pred_* 필드는 per90 정규화 값(90분당 통계)이고 선수 포지션과 무관한 컬럼은 null.
+    필드명의 `aeriels`(공중볼)/`cleensheets`(클린시트) 는 백엔드 DTO 와 동일하게 의도된 표기.
+    """
+    player_id: int = Field(description="선수 ID(백엔드 players.id).", examples=[1])
+    pred_goals_total_per90: Optional[float] = Field(
+        default=None, description="90분당 예측 골 수.", examples=[0.45],
+    )
+    pred_shots_total_per90: Optional[float] = Field(
+        default=None, description="90분당 예측 슈팅 수.", examples=[1.21],
+    )
+    pred_successful_dribbles_per90: Optional[float] = Field(
+        default=None, description="90분당 예측 성공 드리블 수.", examples=[2.76],
+    )
+    pred_key_passes_per90: Optional[float] = Field(
+        default=None, description="90분당 예측 키패스 수.", examples=[2.42],
+    )
+    pred_passes_total_per90: Optional[float] = Field(
+        default=None, description="90분당 예측 패스 수.", examples=[45.7],
+    )
+    pred_tackles_total_per90: Optional[float] = Field(
+        default=None, description="90분당 예측 태클 수.", examples=[1.68],
+    )
+    pred_aeriels_won_per90: Optional[float] = Field(
+        default=None,
+        description="90분당 예측 공중볼 경합 승리(필드명 `aeriels` 는 백엔드 DTO 표기 그대로).",
+        examples=[1.57],
+    )
+    pred_blocked_shots_per90: Optional[float] = Field(
+        default=None, description="90분당 예측 슈팅 블록 수.", examples=[0.39],
+    )
+    pred_accurate_passes_pct: Optional[float] = Field(
+        default=None, description="예측 패스 정확도(%, 0~100).", examples=[81.06],
+    )
+    pred_cleensheets_total: Optional[float] = Field(
+        default=None,
+        description="시즌 누적 예측 클린시트 수(필드명 `cleensheets` 는 백엔드 DTO 표기 그대로).",
+        examples=[7.7],
+    )
 
 
 # ============================================================
@@ -58,20 +95,30 @@ class PerformancePrediction(ApiModel):
 # ============================================================
 
 class MarketValueRequest(ApiModel):
-    """백엔드 AiMarketValueRequest 와 동일."""
-    player_ids: list[int]
-    destination_league: League
+    """이적 후 시장가치 예측 요청."""
+    player_ids: list[int] = Field(
+        description="예측 대상 player_id 목록.",
+        examples=[[1, 2, 3, 4, 5]],
+    )
+    destination_league: League = Field(
+        description="이적 목적지 리그.",
+        examples=["EPL"],
+    )
 
 
 class MarketValuePrediction(ApiModel):
-    """백엔드 AiMarketValuePrediction 와 동일.
-
-    predicted_mv: 예측 시장가치(EUR, 정수).
-    mv_change_rate: 현재 시장가치 대비 변화율.
-    """
-    player_id: int
-    predicted_mv: Optional[int] = None
-    mv_change_rate: Optional[float] = None
+    """선수 1명의 이적 후 시장가치 예측 결과."""
+    player_id: int = Field(description="선수 ID.", examples=[1])
+    predicted_mv: Optional[int] = Field(
+        default=None,
+        description="이적 후 예측 시장가치(EUR, 정수). 모델은 log(EUR) 출력 → exp 변환된 값.",
+        examples=[6706048],
+    )
+    mv_change_rate: Optional[float] = Field(
+        default=None,
+        description="현재 시장가치 대비 변화율((predicted - current) / current). 현재 시장가치가 없으면 null.",
+        examples=[3.19],
+    )
 
 
 # ============================================================
@@ -79,21 +126,32 @@ class MarketValuePrediction(ApiModel):
 # ============================================================
 
 class SimilarPlayersRequest(ApiModel):
-    """백엔드 AiSimilarPlayersRequest 와 동일."""
-    player_ids: list[int]
-    destination_league: League
+    """유사 선수 추천 요청."""
+    player_ids: list[int] = Field(
+        description="추천 대상 player_id 목록.",
+        examples=[[57]],
+    )
+    destination_league: League = Field(
+        description="이적 목적지 리그(추천 후보 풀은 이 리그에 속한 선수들로 한정).",
+        examples=["EPL"],
+    )
 
 
 class SimilarPlayerEntry(ApiModel):
-    """백엔드 SimilarPlayerEntry 와 동일."""
-    similar_player_id: int
-    similarity_score: float
+    """유사 선수 후보 1명."""
+    similar_player_id: int = Field(description="후보 선수의 player_id.", examples=[1116])
+    similarity_score: float = Field(
+        description="cosine 유사도(-1.0 ~ 1.0). 보통 0.9 이상이 강한 유사로 본다.",
+        examples=[0.98],
+    )
 
 
 class SimilarPlayersPrediction(ApiModel):
-    """백엔드 AiSimilarPlayersPrediction 와 동일."""
-    player_id: int
-    similar_players: list[SimilarPlayerEntry]
+    """선수 1명의 유사 선수 top-K 결과(K=5)."""
+    player_id: int = Field(description="요청한 원본 선수 ID.", examples=[57])
+    similar_players: list[SimilarPlayerEntry] = Field(
+        description="유사도 내림차순으로 정렬된 상위 5명. 실패한 경우 빈 리스트.",
+    )
 
 
 # ============================================================
@@ -101,6 +159,7 @@ class SimilarPlayersPrediction(ApiModel):
 # ============================================================
 
 class ErrorResponse(ApiModel):
-    error_code: str
-    message: str
-    details: dict = {}
+    """전역 에러 핸들러가 5xx 응답으로 반환하는 형식."""
+    error_code: str = Field(description="짧은 에러 코드.", examples=["INTERNAL_ERROR"])
+    message: str = Field(description="사람이 읽을 수 있는 에러 메시지.")
+    details: dict = Field(default_factory=dict, description="추가 디버깅 정보(있을 때만).")
