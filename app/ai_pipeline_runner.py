@@ -27,6 +27,7 @@ PREDICT_PIPELINE_PATH = AI_PIPELINE_DIR / "predict_pipeline.py"
 MARKET_VALUE_DIR = AI_PIPELINE_DIR / "market_value"
 MARKET_VALUE_MODEL = MARKET_VALUE_DIR / "market_value_with_stage2_perf_model_sample10.pkl"
 MARKET_VALUE_FEATURES = MARKET_VALUE_DIR / "market_value_with_stage2_perf_features_sample10.pkl"
+SIMILAR_PLAYER_PATH = AI_PIPELINE_DIR / "similar_player_deploy_artifacts" / "predict_similar_players.py"
 
 # Stage2 target_short_name -> market_value 모델의 pred_after_* 컬럼명
 _TARGET_TO_PRED_AFTER: dict[str, str] = {
@@ -81,6 +82,14 @@ class AiPredictionPipeline:
         else:
             logger.warning("market_value 모델 파일 없음 — 시장가치 예측은 dummy fallback")
 
+        # similar_players 모듈 (recommend_similar_players)
+        self._similar_module = None
+        if SIMILAR_PLAYER_PATH.exists():
+            self._similar_module = _load_module("predict_similar_players", SIMILAR_PLAYER_PATH)
+            logger.info("similar_player 모듈 로드 완료")
+        else:
+            logger.warning("predict_similar_players.py 없음 — 유사선수는 dummy fallback")
+
     def predict(
         self,
         player_rows: list[dict[str, Any]],
@@ -105,6 +114,48 @@ class AiPredictionPipeline:
     @property
     def has_market_value(self) -> bool:
         return self._mv_model is not None
+
+    @property
+    def has_similar(self) -> bool:
+        return self._similar_module is not None
+
+    def predict_similar(
+        self,
+        player_rows: list[dict[str, Any]],
+        destination_league: League,
+        top_k: int = 5,
+    ) -> list[list[tuple[int, float]]]:
+        """선수별 top_k 유사선수 후보 반환.
+
+        반환: rows 와 같은 길이의 list. 각 항목은 [(similar_player_id, similarity_score), ...].
+        실패한 row 는 빈 list.
+        """
+        if not self._similar_module or not player_rows:
+            return [[] for _ in player_rows]
+
+        results: list[list[tuple[int, float]]] = []
+        dest_display = destination_league.display_name
+        for row in player_rows:
+            try:
+                built = self._build_input_row(row, destination_league)
+                ret = self._similar_module.recommend_similar_players(
+                    built,
+                    destination_league=dest_display,
+                    top_k=top_k,
+                )
+                recs = ret["recommendations"]
+                entries: list[tuple[int, float]] = []
+                for _, r in recs.iterrows():
+                    sid = r.get("player_id")
+                    sim = r.get("similarity")
+                    if sid is None or pd.isna(sim):
+                        continue
+                    entries.append((int(sid), float(sim)))
+                results.append(entries)
+            except Exception:
+                logger.exception("similar_player 호출 실패 player_id=%s", row.get("player_id"))
+                results.append([])
+        return results
 
     def predict_market_value(
         self,
