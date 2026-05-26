@@ -18,7 +18,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from app.schemas.enums import League
+from app.schemas.enums import League, Position
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +221,14 @@ class AiPredictionPipeline:
         dest_display = destination_league.display_name
 
         merged["transfer_path"] = f"{source_display} -> {dest_display}"
-        merged["position_code"] = row.get("position")
+        # 백엔드 DB 의 position 은 "FW"/"MF"/"DF"/"GK" enum 이름.
+        # AI 팀 모델은 "attacker"/"midfielder"/... role 명을 사용한다.
+        pos_db = row.get("position")
+        if pos_db:
+            try:
+                merged["position_code"] = Position(pos_db).role_name
+            except ValueError:
+                merged["position_code"] = pos_db
         merged["player_age_before"] = row.get("age")
         merged["before_stat_minutes_played_total_num"] = row.get(
             "stat_minutes_played_total"
