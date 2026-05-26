@@ -154,7 +154,7 @@ API_DESCRIPTION = """
 - 모든 입출력은 JSON, 필드명은 **camelCase**.
 - 선수는 한 요청당 **최대 50명** 단위로 청크해서 보낸다 (백엔드 어드민 배치 기본값).
 - 부분 실패는 허용 — 해당 선수의 `pred*` 필드를 `null` 로 반환한다.
-- 동일 (player_id, destinationLeague) 가 백엔드 캐시 테이블에 있으면 Stage1+Stage2 를 건너뛰고 캐시 값을 반환한다 (대폭 빠름).
+- 호출은 항상 fresh 계산을 수행한다 (응답 자체를 캐싱하지 않는다). 단 market-value 는 stage2 중간 결과만 백엔드 테이블에서 재사용해 Stage1+Stage2 를 건너뛸 수 있다 — market_value 모델 호출은 매번 수행.
 
 ### 필드명 메모
 - `aeriels`, `cleensheets` 는 백엔드 DTO 와 동일하게 의도된 표기다 (오타 아님).
@@ -234,7 +234,7 @@ def models_status():
     summary="이적 후 퍼포먼스(per90 스탯) 예측",
     description=(
         "Stage1(잔류 가정 예측) + Stage2(이적 보정 delta) 를 거쳐 90분당 통계를 예측한다. "
-        "해당 (player_id, destinationLeague) 가 백엔드 캐시에 있으면 캐시 값을 즉시 반환한다."
+        "호출은 항상 fresh 계산이며 응답 자체를 캐싱하지 않는다."
     ),
 )
 def predict_performance(request: PerformanceRequest):
