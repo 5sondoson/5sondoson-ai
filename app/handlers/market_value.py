@@ -15,6 +15,20 @@ from app.models.registry import LEAGUES, ModelRegistry
 from app.schemas.api import MarketValuePrediction, MarketValueRequest
 from app.schemas.enums import League
 
+# 캐시 테이블 컬럼명 → AI 모델의 target_short_name 매핑 (Stage2 final_after_pred 와 동일한 의미)
+_CACHE_FIELD_TO_SHORT: dict[str, str] = {
+    "pred_goals_total_per90": "goals",
+    "pred_shots_total_per90": "shots",
+    "pred_successful_dribbles_per90": "successful_dribbles",
+    "pred_key_passes_per90": "key_passes",
+    "pred_passes_total_per90": "passes",
+    "pred_tackles_total_per90": "tackles",
+    "pred_aeriels_won_per90": "aerials_won",
+    "pred_blocked_shots_per90": "blocked_shots",
+    "pred_accurate_passes_pct": "accurate_passes_%",
+    "pred_cleansheets_total": "cleansheets",
+}
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,21 +59,24 @@ class MarketValueHandler:
         t0 = time.time()
         league = request.destination_league
         if self.ai_pipeline is not None and getattr(self.ai_pipeline, "has_market_value", False):
-            results = self._handle_real(request)
+            results, cache_hit = self._handle_real(request)
             mode = "real"
         else:
             results = self._handle_dummy(request)
+            cache_hit = 0
             mode = "dummy"
         latency_ms = int((time.time() - t0) * 1000)
         logger.info(
-            "market_value: league=%s requested=%d latency_ms=%d mode=%s",
-            league.value, len(request.player_ids), latency_ms, mode,
+            "market_value: league=%s requested=%d cache_hit=%d latency_ms=%d mode=%s",
+            league.value, len(request.player_ids), cache_hit, latency_ms, mode,
         )
         return results
 
     # ---------------- 실모델 경로 ----------------
 
-    def _handle_real(self, request: MarketValueRequest) -> list[MarketValuePrediction]:
+    def _handle_real(
+        self, request: MarketValueRequest,
+    ) -> tuple[list[MarketValuePrediction], int]:
         rows: list[dict[str, Any]] = []
         valid_pids: list[int] = []
         current_mv: dict[int, Optional[int]] = {}
@@ -82,9 +99,27 @@ class MarketValueHandler:
             except Exception:
                 logger.exception("market_value 입력 빌드 실패 player_id=%d", pid)
 
+        # performance 캐시(player_performance_predictions) 를 stage2 final_after_pred 대용으로 사용
+        cached_perf = self.feature_store.get_cached_performance(
+            valid_pids, request.destination_league.name,
+        )
+        cached_by_pid: dict[int, dict[str, float]] = {}
+        for pid, fields in cached_perf.items():
+            mapped: dict[str, float] = {}
+            for cache_field, value in fields.items():
+                if value is None:
+                    continue
+                short_name = _CACHE_FIELD_TO_SHORT.get(cache_field)
+                if short_name:
+                    mapped[short_name] = value
+            if mapped:
+                cached_by_pid[pid] = mapped
+
         if rows:
             try:
-                preds = self.ai_pipeline.predict_market_value(rows, request.destination_league)
+                preds = self.ai_pipeline.predict_market_value(
+                    rows, request.destination_league, cached_by_pid=cached_by_pid,
+                )
                 for i, pid in enumerate(valid_pids):
                     predicted = preds[i] if i < len(preds) else None
                     by_pid[pid]["predicted_mv"] = predicted
@@ -92,7 +127,10 @@ class MarketValueHandler:
             except Exception:
                 logger.exception("AI market_value 호출 실패")
 
-        return [MarketValuePrediction(**by_pid[pid]) for pid in request.player_ids]
+        return (
+            [MarketValuePrediction(**by_pid[pid]) for pid in request.player_ids],
+            len(cached_by_pid),
+        )
 
     # ---------------- dummy 경로 ----------------
 
