@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import joblib
+import numpy as np
 import pandas as pd
 
 from app.schemas.enums import League
@@ -138,8 +139,9 @@ class AiPredictionPipeline:
 
         df = pd.DataFrame(prepared).reindex(columns=self._mv_features)
         try:
-            arr = self._mv_model.predict(df)
-            return [int(v) for v in arr]
+            # 모델 출력은 log(EUR). 실제 EUR 로 변환해 반환.
+            log_eur = self._mv_model.predict(df)
+            return [int(round(np.exp(float(v)))) for v in log_eur]
         except Exception:
             logger.exception("market_value 모델 예측 실패")
             return [None] * len(player_rows)
@@ -182,4 +184,19 @@ class AiPredictionPipeline:
                 merged["player_age_sq"] = float(age) ** 2
             except (TypeError, ValueError):
                 pass
+        # AI 팀이 알려준 market_value alias (학습 컬럼명에 맞춤)
+        minutes = row.get("stat_minutes_played_total")
+        appearances = row.get("stat_appearances_total")
+        lineups = row.get("stat_lineups_total")
+        if minutes is not None:
+            merged["minutes"] = minutes
+        if appearances is not None:
+            merged["appearances"] = appearances
+        if lineups is not None:
+            merged["lineups"] = lineups
+        try:
+            if appearances and float(appearances) > 0 and lineups is not None:
+                merged["lineup_rate"] = float(lineups) / float(appearances)
+        except (TypeError, ValueError):
+            pass
         return merged
