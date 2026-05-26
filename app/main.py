@@ -110,17 +110,29 @@ async def lifespan(app: FastAPI):
         state["feature_store"] = MockFeatureStore()
         logger.info("MockFeatureStore 사용 (로컬 개발)")
 
+    # AI 팀 실모델 파이프라인 로드 시도. 실패하면 dummy 사용.
+    state["ai_pipeline"] = None
+    try:
+        from app.ai_pipeline_runner import AiPredictionPipeline
+        state["ai_pipeline"] = AiPredictionPipeline()
+        logger.info("AiPredictionPipeline 활성화 (Stage1+Stage2 실모델)")
+    except Exception as e:
+        logger.warning("AiPredictionPipeline 로드 실패 → dummy 모델 사용. %s", e)
+
     state["performance_handler"] = PerformanceHandler(
         registry=state["registry"],
         feature_store=state["feature_store"],
+        ai_pipeline=state["ai_pipeline"],
     )
     state["market_value_handler"] = MarketValueHandler(
         registry=state["registry"],
         feature_store=state["feature_store"],
+        ai_pipeline=state["ai_pipeline"],
     )
     state["similar_players_handler"] = SimilarPlayersHandler(
         registry=state["registry"],
         feature_store=state["feature_store"],
+        ai_pipeline=state["ai_pipeline"],
     )
 
     logger.info("서버 준비 완료")

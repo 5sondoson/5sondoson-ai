@@ -23,9 +23,15 @@ logger = logging.getLogger(__name__)
 class SimilarPlayersHandler:
     DEFAULT_TOP_K = 5
 
-    def __init__(self, registry: ModelRegistry, feature_store: MockFeatureStore):
+    def __init__(
+        self,
+        registry: ModelRegistry,
+        feature_store: MockFeatureStore,
+        ai_pipeline=None,
+    ):
         self.registry = registry
         self.feature_store = feature_store
+        self.ai_pipeline = ai_pipeline
 
     def handle(self, request: SimilarPlayersRequest) -> list[SimilarPlayersPrediction]:
         t0 = time.time()

@@ -41,6 +41,13 @@ class AiPredictionPipeline:
     """
 
     def __init__(self):
+        # 모델 binary 가 디스크에 없으면 dummy fallback 으로 위임.
+        stage1_models = AI_PIPELINE_DIR / "stage1_deploy_artifacts" / "models"
+        if not stage1_models.exists() or not any(stage1_models.glob("*.pkl")):
+            raise RuntimeError(
+                f"Stage1 모델 파일 없음 ({stage1_models}). "
+                f"S3 다운로드 또는 로컬 배치가 선행되어야 합니다."
+            )
         self._pipeline = _load_module("predict_pipeline", PREDICT_PIPELINE_PATH)
         logger.info("AiPredictionPipeline 로드 완료 (%s)", PREDICT_PIPELINE_PATH)
 

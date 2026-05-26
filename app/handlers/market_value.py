@@ -27,9 +27,15 @@ def _mock_change_rate(player_id: int) -> float:
 
 
 class MarketValueHandler:
-    def __init__(self, registry: ModelRegistry, feature_store: MockFeatureStore):
+    def __init__(
+        self,
+        registry: ModelRegistry,
+        feature_store: MockFeatureStore,
+        ai_pipeline=None,
+    ):
         self.registry = registry
         self.feature_store = feature_store
+        self.ai_pipeline = ai_pipeline
 
     def handle(self, request: MarketValueRequest) -> list[MarketValuePrediction]:
         t0 = time.time()
