@@ -64,37 +64,25 @@ class PerformanceHandler:
         t0 = time.time()
         league = request.destination_league
         if self.ai_pipeline is not None:
-            results, cache_hit = self._handle_real(request)
+            results = self._handle_real(request)
         else:
             results = self._handle_dummy(request)
-            cache_hit = 0
         latency_ms = int((time.time() - t0) * 1000)
         logger.info(
-            "performance: league=%s requested=%d cache_hit=%d latency_ms=%d mode=%s",
-            league.value, len(request.player_ids), cache_hit, latency_ms,
+            "performance: league=%s requested=%d latency_ms=%d mode=%s",
+            league.value, len(request.player_ids), latency_ms,
             "real" if self.ai_pipeline else "dummy",
         )
         return results
 
     # ---------------- 실모델 경로 ----------------
 
-    def _handle_real(
-        self, request: PerformanceRequest,
-    ) -> tuple[list[PerformancePrediction], int]:
-        by_pid: dict[int, dict[str, Any]] = {pid: {"player_id": pid} for pid in request.player_ids}
-
-        # 1) 백엔드 캐시(player_performance_predictions) 조회 — destination_league 는 enum NAME 으로 비교
-        cached = self.feature_store.get_cached_performance(
-            request.player_ids, request.destination_league.name,
-        )
-        for pid, fields in cached.items():
-            by_pid[pid].update({k: v for k, v in fields.items() if v is not None})
-
-        # 2) miss 인 pid 만 Stage1+Stage2 실행
-        miss_pids = [pid for pid in request.player_ids if pid not in cached]
+    def _handle_real(self, request: PerformanceRequest) -> list[PerformancePrediction]:
         rows: list[dict[str, Any]] = []
         valid_pids: list[int] = []
-        for pid in miss_pids:
+        by_pid: dict[int, dict[str, Any]] = {pid: {"player_id": pid} for pid in request.player_ids}
+
+        for pid in request.player_ids:
             try:
                 if not self.feature_store.exists(pid):
                     raise ValueError(f"player_id={pid} not found")
@@ -126,10 +114,7 @@ class PerformanceHandler:
             except Exception:
                 logger.exception("AI pipeline 호출 실패 — 모든 결과 null 로 반환")
 
-        return (
-            [PerformancePrediction(**by_pid[pid]) for pid in request.player_ids],
-            len(cached),
-        )
+        return [PerformancePrediction(**by_pid[pid]) for pid in request.player_ids]
 
     # ---------------- dummy 경로 (Mock 모드) ----------------
 
