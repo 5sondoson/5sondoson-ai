@@ -41,27 +41,24 @@ class MockFeatureStore:
         }
 
     def get_features(self, player_id: int, season_id: int = 0) -> dict:
-        """모델 입력으로 사용할 피처 dict."""
+        """모델 입력으로 사용할 피처 dict — 백엔드 PlayerSeasonRecord 컬럼명과 일치."""
         h = int(hashlib.md5(f"{player_id}_{season_id}".encode()).hexdigest(), 16)
         return {
             "player_id": player_id,
             "season_id": season_id,
             "stat_minutes_played_total": 1000 + (h % 2500),
             "stat_goals_total": h % 20,
-            "stat_shots_total": h % 80,
+            "stat_shots_total_total": h % 80,
             "stat_assists_total": h % 15,
             "stat_passes_total": 200 + (h % 1500),
             "stat_key_passes_total": h % 30,
             "stat_tackles_total": h % 60,
-            "stat_aerials_won_total": h % 40,
+            "stat_aeriels_won_total": h % 40,
             "stat_clearances_total": h % 50,
             "stat_blocked_shots_total": h % 25,
             "stat_saves_total": h % 100,
             "stat_cleansheets_total": h % 15,
-            "stat_accurate_passes_pct": 0.6 + (h % 35) / 100,
-            "age": 18 + (h % 18),
-            "height": 170 + (h % 25),
-            "weight": 65 + (h % 25),
+            "stat_accurate_passes_percentage_total": 0.6 + (h % 35) / 100,
         }
 
     def exists(self, player_id: int) -> bool:

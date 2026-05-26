@@ -37,24 +37,22 @@ POSITION_OUTPUT_KEYS = {
 LEAGUES = ["EPL", "LA", "SA", "BL", "L1"]
 POSITIONS = ["FW", "MF", "DF", "GK"]
 
-# 학습 시 사용할 피처 (포지션 무관, 공통)
+# 학습 시 사용할 피처 — 백엔드 PlayerSeasonRecord 엔티티의 실제 컬럼명과 일치.
+# age/height/weight 는 players 테이블에 있어 season_records 에 없으므로 제외.
 COMMON_FEATURES = [
     "stat_minutes_played_total",
     "stat_goals_total",
-    "stat_shots_total",
+    "stat_shots_total_total",
     "stat_assists_total",
     "stat_passes_total",
     "stat_key_passes_total",
     "stat_tackles_total",
-    "stat_aerials_won_total",
+    "stat_aeriels_won_total",
     "stat_clearances_total",
     "stat_blocked_shots_total",
     "stat_saves_total",
     "stat_cleansheets_total",
-    "stat_accurate_passes_pct",
-    "age",
-    "height",
-    "weight",
+    "stat_accurate_passes_percentage_total",
 ]
 
 
