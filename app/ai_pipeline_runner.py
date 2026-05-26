@@ -1,6 +1,7 @@
 """AI 팀 predict_pipeline 의 thin wrapper.
 
 DB 에서 가져온 선수 행 + 목적지 리그 → Stage1+Stage2 실행 → 최종 예측 DataFrame.
+필요 시 market_value 모델까지 호출해 EUR 예측을 돌려준다.
 
 AI 팀 산출물 구조(`app/ai_pipeline/`) 의 코드는 import 가 까다로워서
 `importlib` 로 동적 로드한다. import 시점에 모델 파일(.pkl/.joblib)이
@@ -11,8 +12,9 @@ from __future__ import annotations
 import importlib.util
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
+import joblib
 import pandas as pd
 
 from app.schemas.enums import League
@@ -21,6 +23,23 @@ logger = logging.getLogger(__name__)
 
 AI_PIPELINE_DIR = Path(__file__).parent / "ai_pipeline"
 PREDICT_PIPELINE_PATH = AI_PIPELINE_DIR / "predict_pipeline.py"
+MARKET_VALUE_DIR = AI_PIPELINE_DIR / "market_value"
+MARKET_VALUE_MODEL = MARKET_VALUE_DIR / "market_value_with_stage2_perf_model_sample10.pkl"
+MARKET_VALUE_FEATURES = MARKET_VALUE_DIR / "market_value_with_stage2_perf_features_sample10.pkl"
+
+# Stage2 target_short_name -> market_value 모델의 pred_after_* 컬럼명
+_TARGET_TO_PRED_AFTER: dict[str, str] = {
+    "goals": "pred_after_goals",
+    "shots": "pred_after_shots",
+    "successful_dribbles": "pred_after_successful_dribbles",
+    "key_passes": "pred_after_key_passes",
+    "passes": "pred_after_passes",
+    "tackles": "pred_after_tackles",
+    "aerials_won": "pred_after_aerials_won",  # market_value 모델은 "aerials" 표기(백엔드 DB typo 와 다름)
+    "blocked_shots": "pred_after_blocked_shots",
+    "cleansheets": "pred_after_cleansheets",
+    "accurate_passes_%": "pred_after_accurate_passes_pct",
+}
 
 
 def _load_module(module_name: str, path: Path):
@@ -51,6 +70,16 @@ class AiPredictionPipeline:
         self._pipeline = _load_module("predict_pipeline", PREDICT_PIPELINE_PATH)
         logger.info("AiPredictionPipeline 로드 완료 (%s)", PREDICT_PIPELINE_PATH)
 
+        # market_value 모델은 있으면 로드, 없으면 무시 (Stage2까지는 정상 동작).
+        self._mv_model = None
+        self._mv_features: list[str] = []
+        if MARKET_VALUE_MODEL.exists() and MARKET_VALUE_FEATURES.exists():
+            self._mv_model = joblib.load(MARKET_VALUE_MODEL)
+            self._mv_features = joblib.load(MARKET_VALUE_FEATURES)
+            logger.info("market_value 모델 로드 완료 (%d features)", len(self._mv_features))
+        else:
+            logger.warning("market_value 모델 파일 없음 — 시장가치 예측은 dummy fallback")
+
     def predict(
         self,
         player_rows: list[dict[str, Any]],
@@ -71,6 +100,49 @@ class AiPredictionPipeline:
         df = pd.DataFrame(rows)
         result = self._pipeline.predict_dataframe(df)
         return result["stage2_predictions"]
+
+    @property
+    def has_market_value(self) -> bool:
+        return self._mv_model is not None
+
+    def predict_market_value(
+        self,
+        player_rows: list[dict[str, Any]],
+        destination_league: League,
+    ) -> list[Optional[int]]:
+        """Stage1+Stage2 결과를 활용해 market_value 모델로 EUR 예측.
+
+        반환 길이는 player_rows 와 동일. 예측 실패한 row 는 None.
+        """
+        if not self._mv_model or not player_rows:
+            return [None] * len(player_rows)
+
+        stage2_df = self.predict(player_rows, destination_league)
+
+        # row_index → pred_after_* dict
+        pred_after_by_idx: dict[int, dict[str, float]] = {}
+        for _, r in stage2_df.iterrows():
+            ridx = int(r["row_index"])
+            field = _TARGET_TO_PRED_AFTER.get(r["target_short_name"])
+            value = r["final_after_pred"]
+            if field and not pd.isna(value):
+                pred_after_by_idx.setdefault(ridx, {})[field] = float(value)
+
+        # market_value 모델 입력 구성 — league 컬럼은 enum 이름("PREMIER_LEAGUE") 사용
+        prepared: list[dict[str, Any]] = []
+        for i, row in enumerate(player_rows):
+            built = self._build_input_row(row, destination_league)
+            built["league"] = destination_league.name
+            built.update(pred_after_by_idx.get(i, {}))
+            prepared.append(built)
+
+        df = pd.DataFrame(prepared).reindex(columns=self._mv_features)
+        try:
+            arr = self._mv_model.predict(df)
+            return [int(v) for v in arr]
+        except Exception:
+            logger.exception("market_value 모델 예측 실패")
+            return [None] * len(player_rows)
 
     @staticmethod
     def _build_input_row(

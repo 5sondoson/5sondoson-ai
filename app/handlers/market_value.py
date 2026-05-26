@@ -1,13 +1,14 @@
 """POST /predict/market-value 핸들러.
 
-백엔드 AiPredictionClient.fetchMarketValuePredictions 호출에 대응한다.
+ai_pipeline 이 있고 market_value 모델까지 로드돼 있으면 실모델 경로로,
+없으면 기존 dummy 경로(로컬 개발)로 fallback.
 """
 from __future__ import annotations
 
 import hashlib
 import logging
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from app.features.store import MockFeatureStore
 from app.models.registry import LEAGUES, ModelRegistry
@@ -18,12 +19,15 @@ logger = logging.getLogger(__name__)
 
 
 def _mock_change_rate(player_id: int) -> float:
-    """현재 가치 대비 변화율을 player_id 기반으로 결정적으로 생성.
-
-    실제 모델 통합 전 mock 용. -0.2 ~ +0.5 범위.
-    """
+    """현 가치 대비 변화율 mock — player_id 기반 결정적."""
     h = int(hashlib.md5(f"mv_change_{player_id}".encode()).hexdigest(), 16)
     return round(-0.2 + (h % 700) / 1000, 4)
+
+
+def _change_rate(predicted: Optional[int], current: Optional[int]) -> Optional[float]:
+    if predicted is None or not current:
+        return None
+    return round((predicted - current) / current, 4)
 
 
 class MarketValueHandler:
@@ -31,7 +35,7 @@ class MarketValueHandler:
         self,
         registry: ModelRegistry,
         feature_store: MockFeatureStore,
-        ai_pipeline=None,
+        ai_pipeline: Optional[Any] = None,
     ):
         self.registry = registry
         self.feature_store = feature_store
@@ -40,30 +44,74 @@ class MarketValueHandler:
     def handle(self, request: MarketValueRequest) -> list[MarketValuePrediction]:
         t0 = time.time()
         league = request.destination_league
-        results: list[MarketValuePrediction] = []
-
-        for player_id in request.player_ids:
-            try:
-                results.append(self._predict_one(player_id, league))
-            except Exception as e:
-                logger.exception(f"market value prediction failed for player_id={player_id}")
-                results.append(MarketValuePrediction(player_id=player_id))
-
+        if self.ai_pipeline is not None and getattr(self.ai_pipeline, "has_market_value", False):
+            results = self._handle_real(request)
+            mode = "real"
+        else:
+            results = self._handle_dummy(request)
+            mode = "dummy"
         latency_ms = int((time.time() - t0) * 1000)
         logger.info(
-            "market_value: league=%s requested=%d latency_ms=%d",
-            league.value, len(request.player_ids), latency_ms,
+            "market_value: league=%s requested=%d latency_ms=%d mode=%s",
+            league.value, len(request.player_ids), latency_ms, mode,
         )
         return results
 
-    def _predict_one(self, player_id: int, league: League) -> MarketValuePrediction:
+    # ---------------- 실모델 경로 ----------------
+
+    def _handle_real(self, request: MarketValueRequest) -> list[MarketValuePrediction]:
+        rows: list[dict[str, Any]] = []
+        valid_pids: list[int] = []
+        current_mv: dict[int, Optional[int]] = {}
+        by_pid: dict[int, dict[str, Any]] = {pid: {"player_id": pid} for pid in request.player_ids}
+
+        for pid in request.player_ids:
+            try:
+                if not self.feature_store.exists(pid):
+                    raise ValueError(f"player_id={pid} not found")
+                info = self.feature_store.get_player_info(pid)
+                feats = self.feature_store.get_features(pid)
+                if info is None or feats is None:
+                    raise ValueError(f"player_id={pid} no data")
+                merged = {**feats, **info, "player_id": pid}
+                rows.append(merged)
+                valid_pids.append(pid)
+                # 현 가치는 PlayerSeasonRecord.market_value 우선, 없으면 None
+                cmv = feats.get("market_value") or feats.get("current_market_value")
+                current_mv[pid] = int(cmv) if cmv else None
+            except Exception:
+                logger.exception("market_value 입력 빌드 실패 player_id=%d", pid)
+
+        if rows:
+            try:
+                preds = self.ai_pipeline.predict_market_value(rows, request.destination_league)
+                for i, pid in enumerate(valid_pids):
+                    predicted = preds[i] if i < len(preds) else None
+                    by_pid[pid]["predicted_mv"] = predicted
+                    by_pid[pid]["mv_change_rate"] = _change_rate(predicted, current_mv.get(pid))
+            except Exception:
+                logger.exception("AI market_value 호출 실패")
+
+        return [MarketValuePrediction(**by_pid[pid]) for pid in request.player_ids]
+
+    # ---------------- dummy 경로 ----------------
+
+    def _handle_dummy(self, request: MarketValueRequest) -> list[MarketValuePrediction]:
+        results: list[MarketValuePrediction] = []
+        for pid in request.player_ids:
+            try:
+                results.append(self._predict_one_dummy(pid, request.destination_league))
+            except Exception:
+                logger.exception("market value prediction failed for player_id=%d", pid)
+                results.append(MarketValuePrediction(player_id=pid))
+        return results
+
+    def _predict_one_dummy(self, player_id: int, league: League) -> MarketValuePrediction:
         if not self.feature_store.exists(player_id):
             raise ValueError(f"player_id={player_id} not found")
-
         info = self.feature_store.get_player_info(player_id, season_id=0)
         features = self.feature_store.get_features(player_id, season_id=0)
         position = info["position"]
-
         predictor = self.registry.get_market_value(position)
         mv_input = {
             **features,
@@ -73,7 +121,7 @@ class MarketValueHandler:
             "target_league_idx": LEAGUES.index(league.value) if league.value in LEAGUES else 0,
         }
         raw = predictor.predict(mv_input)
-        predicted_mv: Optional[int] = int(raw["market_value_eur"]) if "market_value_eur" in raw else None
+        predicted_mv = int(raw["market_value_eur"]) if "market_value_eur" in raw else None
         return MarketValuePrediction(
             player_id=player_id,
             predicted_mv=predicted_mv,
