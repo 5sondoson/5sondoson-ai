@@ -33,18 +33,19 @@ _DUMMY_OUTPUT_TO_FIELD: dict[str, str] = {
     "cleansheets": "pred_cleensheets_total",
 }
 
-# AI 팀 Stage1 target 이름 -> 백엔드 응답 필드 매핑.
+# AI 팀 Stage2 출력의 target_short_name -> 백엔드 응답 필드 매핑.
+# (stage2_predictions DF 의 target 컬럼은 'delta_*' 형식이라 target_short_name 사용)
 _AI_TARGET_TO_FIELD: dict[str, str] = {
-    "stat_goals_total_per90_next": "pred_goals_total_per90",
-    "stat_shots_total_total_per90_next": "pred_shots_total_per90",
-    "stat_successful_dribbles_total_per90_next": "pred_successful_dribbles_per90",
-    "stat_key_passes_total_per90_next": "pred_key_passes_per90",
-    "stat_passes_total_per90_next": "pred_passes_total_per90",
-    "stat_tackles_total_per90_next": "pred_tackles_total_per90",
-    "stat_aeriels_won_total_per90_next": "pred_aeriels_won_per90",
-    "stat_blocked_shots_total_per90_next": "pred_blocked_shots_per90",
-    "stat_accurate_passes_percentage_total_next": "pred_accurate_passes_pct",
-    "stat_cleansheets_total_next": "pred_cleensheets_total",
+    "goals": "pred_goals_total_per90",
+    "shots": "pred_shots_total_per90",
+    "successful_dribbles": "pred_successful_dribbles_per90",
+    "key_passes": "pred_key_passes_per90",
+    "passes": "pred_passes_total_per90",
+    "tackles": "pred_tackles_total_per90",
+    "aerials_won": "pred_aeriels_won_per90",
+    "blocked_shots": "pred_blocked_shots_per90",
+    "accurate_passes_%": "pred_accurate_passes_pct",
+    "cleansheets": "pred_cleensheets_total",
 }
 
 
@@ -103,7 +104,7 @@ class PerformanceHandler:
                     if ridx >= len(valid_pids):
                         continue
                     pid = valid_pids[ridx]
-                    field = _AI_TARGET_TO_FIELD.get(pred_row["target"])
+                    field = _AI_TARGET_TO_FIELD.get(pred_row["target_short_name"])
                     if field is None:
                         continue
                     value = pred_row["final_after_pred"]
