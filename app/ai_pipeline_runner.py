@@ -25,23 +25,84 @@ logger = logging.getLogger(__name__)
 AI_PIPELINE_DIR = Path(__file__).parent / "ai_pipeline"
 PREDICT_PIPELINE_PATH = AI_PIPELINE_DIR / "predict_pipeline.py"
 MARKET_VALUE_DIR = AI_PIPELINE_DIR / "market_value"
-MARKET_VALUE_MODEL = MARKET_VALUE_DIR / "market_value_with_stage2_perf_model_sample10.pkl"
-MARKET_VALUE_FEATURES = MARKET_VALUE_DIR / "market_value_with_stage2_perf_features_sample10.pkl"
+MARKET_VALUE_MODEL = MARKET_VALUE_DIR / "market_value_model_prev_log_only_adjusted.pkl"
+MARKET_VALUE_FEATURES = MARKET_VALUE_DIR / "market_value_features_prev_log_only_adjusted.pkl"
 SIMILAR_PLAYER_PATH = AI_PIPELINE_DIR / "similar_player_deploy_artifacts" / "predict_similar_players.py"
 
-# Stage2 target_short_name -> market_value 모델의 pred_after_* 컬럼명
-_TARGET_TO_PRED_AFTER: dict[str, str] = {
-    "goals": "pred_after_goals",
-    "shots": "pred_after_shots",
-    "successful_dribbles": "pred_after_successful_dribbles",
-    "key_passes": "pred_after_key_passes",
-    "passes": "pred_after_passes",
-    "tackles": "pred_after_tackles",
-    "aerials_won": "pred_after_aerials_won",  # market_value 모델은 "aerials" 표기(백엔드 DB typo 와 다름)
-    "blocked_shots": "pred_after_blocked_shots",
-    "cleansheets": "pred_after_cleansheets",
-    "accurate_passes_%": "pred_after_accurate_passes_pct",
+# Stage2 target_short_name -> market_value 모델의 per90 입력 컬럼.
+# 모델은 이적 후 예측 per90(Stage2 final_after_pred)을 입력으로 받아
+# 목적지 리그별 이적 후 시장가치를 예측한다.
+_TARGET_TO_STAT_PER90: dict[str, str] = {
+    "goals": "stat_goals_total_per90",
+    "shots": "stat_shots_total_total_per90",
+    "successful_dribbles": "stat_successful_dribbles_total_per90",
+    "key_passes": "stat_key_passes_total_per90",
+    "passes": "stat_passes_total_per90",
+    "tackles": "stat_tackles_total_per90",
+    "aerials_won": "stat_aeriels_won_total_per90",
+    "blocked_shots": "stat_blocked_shots_total_per90",
+    "accurate_passes_%": "stat_accurate_passes_percentage_total",
+    "cleansheets": "stat_cleansheets_total",
 }
+
+
+# market_value upside 보정 — AI 팀 integrated 모델의 보정 단계를 base 모델 위에서 재현.
+# (CSV 산출물로 100% 역산: final = expm1(base.predict) * upside_multiplier)
+def _undervalue_score(prev_mv: Optional[float]) -> float:
+    """현재 시장가치(EUR) 가 낮을수록 높은 점수. 모르면 0(보정 억제)."""
+    if prev_mv is None:
+        return 0.0
+    v = float(prev_mv)
+    if v < 1_000_000:
+        return 1.0
+    if v < 3_000_000:
+        return 0.75
+    if v < 7_000_000:
+        return 0.5
+    if v < 15_000_000:
+        return 0.25
+    return 0.0
+
+
+def _age_upside_score(age: Optional[float]) -> float:
+    """어릴수록 높은 점수."""
+    if age is None:
+        return 0.0
+    a = float(age)
+    if a <= 21:
+        return 1.0
+    if a <= 24:
+        return 0.75
+    if a <= 27:
+        return 0.4
+    return 0.0
+
+
+def _minutes_score(minutes: Optional[float]) -> float:
+    """출전시간이 많을수록 높은 점수. 모르면 최소(0.1)."""
+    if minutes is None:
+        return 0.1
+    m = float(minutes)
+    if m < 600:
+        return 0.1
+    if m < 1200:
+        return 0.4
+    if m < 2000:
+        return 0.75
+    return 1.0
+
+
+def _upside_multiplier(
+    prev_mv: Optional[float],
+    age: Optional[float],
+    minutes: Optional[float],
+) -> float:
+    score = (
+        0.45 * _undervalue_score(prev_mv)
+        + 0.35 * _age_upside_score(age)
+        + 0.20 * _minutes_score(minutes)
+    )
+    return 1.0 + 0.8 * score
 
 
 def _load_module(module_name: str, path: Path):
@@ -163,11 +224,15 @@ class AiPredictionPipeline:
         destination_league: League,
         cached_by_pid: Optional[dict[int, dict[str, float]]] = None,
     ) -> list[Optional[int]]:
-        """Stage1+Stage2 결과를 활용해 market_value 모델로 EUR 예측.
+        """이적 후 예측 per90(Stage2) + 현재 시장가치(log) 로 이적 후 시장가치(EUR) 예측.
 
-        cached_by_pid 가 있으면 해당 player_id 는 Stage1+Stage2 호출을 스킵하고
-        캐시 값을 stage2 final_after_pred 로 간주해 pred_after_* 입력에 사용한다.
+        모델은 이적 후 예측 per90(Stage2 final_after_pred)을 per90 입력으로 받아
+        목적지 리그별 이적 후 시장가치를 낸다. cached_by_pid 가 있으면 해당 player_id 는
+        Stage1+Stage2 호출을 스킵하고 캐시 값(이적 후 예측 per90)을 그대로 사용한다.
         형식: {player_id: {target_short_name: value}} (e.g. {123: {"goals": 0.45}}).
+
+        base 모델은 log1p(market_value) 를 예측 → expm1 역변환 후 upside multiplier
+        (현재가치/나이/출전시간 기반)를 곱해 최종 EUR 을 만든다.
 
         반환 길이는 player_rows 와 동일. 예측 실패한 row 는 None.
         """
@@ -186,20 +251,20 @@ class AiPredictionPipeline:
                 miss_local_to_global.append(i)
                 miss_rows.append(row)
 
-        # row_index → pred_after_* dict (player_rows 전역 인덱스 기준)
-        pred_after_by_idx: dict[int, dict[str, float]] = {}
+        # 전역 인덱스 → {stat_*_per90: 이적 후 예측값}
+        stage2_by_idx: dict[int, dict[str, float]] = {}
 
-        # 캐시 hit: 캐시된 short_name → pred_after_* 입력
+        # 캐시 hit: 캐시된 short_name → stat_*_per90 입력
         for pid, short_to_val in cached_by_pid.items():
             gidx = pid_to_idx.get(int(pid))
             if gidx is None:
                 continue
             for short_name, value in short_to_val.items():
-                field = _TARGET_TO_PRED_AFTER.get(short_name)
-                if field and value is not None:
-                    pred_after_by_idx.setdefault(gidx, {})[field] = float(value)
+                col = _TARGET_TO_STAT_PER90.get(short_name)
+                if col and value is not None:
+                    stage2_by_idx.setdefault(gidx, {})[col] = float(value)
 
-        # 캐시 miss: Stage1+Stage2 호출 후 stage2_df 에서 pred_after_* 추출
+        # 캐시 miss: Stage1+Stage2 호출 후 stage2_df 에서 stat_*_per90 추출
         if miss_rows:
             stage2_df = self.predict(miss_rows, destination_league)
             for _, r in stage2_df.iterrows():
@@ -207,27 +272,52 @@ class AiPredictionPipeline:
                 if local_idx >= len(miss_local_to_global):
                     continue
                 gidx = miss_local_to_global[local_idx]
-                field = _TARGET_TO_PRED_AFTER.get(r["target_short_name"])
+                col = _TARGET_TO_STAT_PER90.get(r["target_short_name"])
                 value = r["final_after_pred"]
-                if field and not pd.isna(value):
-                    pred_after_by_idx.setdefault(gidx, {})[field] = float(value)
+                if col and not pd.isna(value):
+                    stage2_by_idx.setdefault(gidx, {})[col] = float(value)
 
-        # market_value 모델 입력 구성 — league 컬럼은 enum 이름("PREMIER_LEAGUE") 사용
+        # 입력 구성 — league=목적지 리그, prev_market_value_log=log1p(현재가치),
+        # per90 은 DB 가 안 주는 것을 raw/minutes*90 으로 채워 현재 시즌 값으로 만든 뒤(AI 팀
+        # deploy 와 동일 방식), Stage2 가 예측하는 per90 만 이적 후 예측값으로 덮어쓴다.
         prepared: list[dict[str, Any]] = []
         for i, row in enumerate(player_rows):
             built = self._build_input_row(row, destination_league)
             built["league"] = destination_league.name
-            built.update(pred_after_by_idx.get(i, {}))
+            cmv = row.get("market_value") or row.get("current_market_value")
+            if cmv:
+                built["prev_market_value_log"] = float(np.log1p(float(cmv)))
+            minutes = row.get("stat_minutes_played_total")
+            if minutes and float(minutes) > 0:
+                m = float(minutes)
+                for feat in self._mv_features:
+                    if feat.endswith("_per90") and built.get(feat) is None:
+                        base_val = built.get(feat[:-6])
+                        if base_val is not None:
+                            try:
+                                built[feat] = float(base_val) / m * 90.0
+                            except (TypeError, ValueError):
+                                pass
+            built.update(stage2_by_idx.get(i, {}))
             prepared.append(built)
 
         df = pd.DataFrame(prepared).reindex(columns=self._mv_features)
         try:
-            # 모델 출력은 log(EUR). 실제 EUR 로 변환해 반환.
-            log_eur = self._mv_model.predict(df)
-            return [int(round(np.exp(float(v)))) for v in log_eur]
+            base_eur = np.expm1(self._mv_model.predict(df))
         except Exception:
-            logger.exception("market_value 모델 예측 실패")
+            logger.exception("market_value base 모델 예측 실패")
             return [None] * len(player_rows)
+
+        out: list[Optional[int]] = []
+        for row, be in zip(player_rows, base_eur):
+            cmv = row.get("market_value") or row.get("current_market_value")
+            mult = _upside_multiplier(
+                float(cmv) if cmv else None,
+                row.get("age"),
+                row.get("stat_minutes_played_total"),
+            )
+            out.append(int(round(float(be) * mult)))
+        return out
 
     @staticmethod
     def _build_input_row(
