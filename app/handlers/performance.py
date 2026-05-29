@@ -48,6 +48,10 @@ _AI_TARGET_TO_FIELD: dict[str, str] = {
     "cleansheets": "pred_cleensheets_total",
 }
 
+# 이 지표들은 Stage2 보정이 부정확해 Stage1 예측값을 채택한다(AI 팀 stage1_override_targets).
+# market_value 모델 입력과 일관되도록 performance 응답/캐시도 동일하게 Stage1 값으로 저장.
+_STAGE1_OVERRIDE: set[str] = {"accurate_passes_%", "blocked_shots"}
+
 
 class PerformanceHandler:
     def __init__(
@@ -104,10 +108,12 @@ class PerformanceHandler:
                     if ridx >= len(valid_pids):
                         continue
                     pid = valid_pids[ridx]
-                    field = _AI_TARGET_TO_FIELD.get(pred_row["target_short_name"])
+                    short = pred_row["target_short_name"]
+                    field = _AI_TARGET_TO_FIELD.get(short)
                     if field is None:
                         continue
-                    value = pred_row["final_after_pred"]
+                    # stage1_override 지표는 Stage1 예측값을, 나머지는 Stage2 final 채택
+                    value = pred_row["stage1_pred"] if short in _STAGE1_OVERRIDE else pred_row["final_after_pred"]
                     if pd.isna(value):
                         continue
                     by_pid[pid][field] = float(value)
