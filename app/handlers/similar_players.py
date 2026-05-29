@@ -7,7 +7,10 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
+import tempfile
 import time
+from pathlib import Path
 from typing import Any, Optional
 
 from app.features.store import MockFeatureStore
@@ -34,6 +37,27 @@ class SimilarPlayersHandler:
         self.registry = registry
         self.feature_store = feature_store
         self.ai_pipeline = ai_pipeline
+        self._pool_path: Optional[str] = None
+
+    def _ensure_candidate_pool(self) -> Optional[str]:
+        """백엔드 DB 5대리그 선수로 후보 풀 CSV 를 1회 빌드/캐싱하고 경로 반환.
+
+        풀을 못 만들면(Mock 등) None — 이 경우 AI 팀 기본 후보 풀로 fallback.
+        """
+        if self._pool_path and Path(self._pool_path).exists():
+            return self._pool_path
+        try:
+            df = self.feature_store.get_big5_candidate_pool()
+        except Exception:
+            logger.exception("백엔드 후보 풀 빌드 실패 — 기본 풀로 fallback")
+            return None
+        if df is None or df.empty:
+            return None
+        path = os.path.join(tempfile.gettempdir(), "backend_candidate_pool.csv")
+        df.to_csv(path, index=False, encoding="utf-8-sig")
+        self._pool_path = path
+        logger.info("백엔드 후보 풀 빌드 완료 (%d명, %s)", len(df), path)
+        return path
 
     def handle(self, request: SimilarPlayersRequest) -> list[SimilarPlayersPrediction]:
         t0 = time.time()
@@ -74,9 +98,12 @@ class SimilarPlayersHandler:
 
         if rows:
             try:
+                pool_path = self._ensure_candidate_pool()
                 results_per_row = self.ai_pipeline.predict_similar(
                     rows, request.destination_league, top_k=self.DEFAULT_TOP_K,
+                    candidate_pool_path=pool_path,
                 )
+                # 백엔드 DB 후보 풀이면 player_id 가 곧 백엔드 id (별도 매핑 불필요)
                 for pid, entries in zip(valid_pids, results_per_row):
                     by_pid[pid] = [
                         SimilarPlayerEntry(similar_player_id=sid, similarity_score=score)

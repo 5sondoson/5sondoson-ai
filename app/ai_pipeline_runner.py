@@ -128,14 +128,23 @@ class AiPredictionPipeline:
         player_rows: list[dict[str, Any]],
         destination_league: League,
         top_k: int = 5,
+        candidate_pool_path: Optional[str] = None,
     ) -> list[list[tuple[int, float]]]:
         """선수별 top_k 유사선수 후보 반환.
+
+        candidate_pool_path 가 주어지면 그 후보 풀(백엔드 DB 기반)로 cosine 추천한다.
+        이때 반환되는 player_id 는 백엔드 DB id 이므로 별도 매핑이 필요 없다.
+        None 이면 AI 팀 기본 후보 풀을 사용한다.
 
         반환: rows 와 같은 길이의 list. 각 항목은 [(similar_player_id, similarity_score), ...].
         실패한 row 는 빈 list.
         """
         if not self._similar_module or not player_rows:
             return [[] for _ in player_rows]
+
+        pool_kwargs: dict[str, Any] = {}
+        if candidate_pool_path:
+            pool_kwargs["candidate_pool_path"] = candidate_pool_path
 
         results: list[list[tuple[int, float]]] = []
         dest_display = destination_league.display_name
@@ -146,6 +155,7 @@ class AiPredictionPipeline:
                     built,
                     destination_league=dest_display,
                     top_k=top_k,
+                    **pool_kwargs,
                 )
                 recs = ret["recommendations"]
                 entries: list[tuple[int, float]] = []
