@@ -73,6 +73,10 @@ class MockFeatureStore:
         """Mock 에서는 캐시 없음 — 항상 miss."""
         return {}
 
+    def get_player_ids_by_names(self, names) -> dict[str, int]:
+        """Mock 에서는 이름→id 매핑 없음 (real 경로 전용)."""
+        return {}
+
 
 def _build_db_url() -> str:
     """환경변수에서 MySQL SQLAlchemy URL 조립."""
@@ -217,4 +221,32 @@ class DbFeatureStore:
             d = dict(r._mapping)
             pid = int(d.pop("player_id"))
             out[pid] = {k: (float(v) if v is not None else None) for k, v in d.items()}
+        return out
+
+    def get_player_ids_by_names(self, names) -> dict[str, int]:
+        """선수 이름(name/display_name) → 백엔드 player_id 매핑.
+
+        유사 선수 추천 후보(AI 후보 풀 id)를 백엔드 DB id 로 변환할 때 사용.
+        반환 dict 는 name 과 display_name 둘 다 키로 포함한다.
+        """
+        names = [n for n in set(names) if n]
+        if not names:
+            return {}
+        from sqlalchemy import bindparam, text
+        query = text("""
+            SELECT id, name, display_name
+            FROM players
+            WHERE name IN :ns OR display_name IN :ns
+        """).bindparams(bindparam("ns", expanding=True))
+        wanted = set(names)
+        out: dict[str, int] = {}
+        with self.engine.connect() as conn:
+            rows = conn.execute(query, {"ns": names}).fetchall()
+        for r in rows:
+            d = dict(r._mapping)
+            pid = int(d["id"])
+            if d["name"] in wanted:
+                out.setdefault(d["name"], pid)
+            if d["display_name"] in wanted:
+                out.setdefault(d["display_name"], pid)
         return out
