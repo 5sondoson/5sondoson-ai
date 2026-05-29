@@ -17,3 +17,4 @@ app/ai_pipeline/stage1_deploy_artifacts/models/
 app/ai_pipeline/stage2_deploy_artifacts/models/
 app/ai_pipeline/market_value/*model*.pkl
 app/ai_pipeline/market_value/*model*.joblib
+app/ai_pipeline/market_value/marketvalue_final.pkl
