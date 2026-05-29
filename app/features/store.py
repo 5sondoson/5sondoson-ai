@@ -73,6 +73,10 @@ class MockFeatureStore:
         """Mock 에서는 캐시 없음 — 항상 miss."""
         return {}
 
+    def get_big5_candidate_pool(self):
+        """Mock 에서는 백엔드 후보 풀 없음 — 기본 AI 풀로 fallback."""
+        return None
+
 
 def _build_db_url() -> str:
     """환경변수에서 MySQL SQLAlchemy URL 조립."""
@@ -218,3 +222,84 @@ class DbFeatureStore:
             pid = int(d.pop("player_id"))
             out[pid] = {k: (float(v) if v is not None else None) for k, v in d.items()}
         return out
+
+    def get_big5_candidate_pool(self):
+        """5대리그 선수를 유사 선수 후보 풀 형식으로 반환.
+
+        AI recommend_similar_players 의 candidate_pool 형식에 맞춰
+        position_code(role 명) / league_name(displayName) / 포지션 벡터 지표(short name)
+        를 구성한다. player_id 는 백엔드 DB id 이므로 추천 결과가 곧장 백엔드 id 가 된다.
+        선수당 최신 시즌 1행.
+        """
+        import pandas as pd
+        from sqlalchemy import bindparam, text
+
+        from app.schemas.enums import League, Position
+
+        big5 = ["PREMIER_LEAGUE", "LA_LIGA", "BUNDESLIGA", "SERIE_A", "LIGUE_1"]
+        query = text("""
+            SELECT
+                p.id           AS player_id,
+                p.name         AS player_name,
+                p.display_name AS player_display_name,
+                p.position,
+                p.league,
+                p.age          AS player_age,
+                r.season_start_year,
+                r.stat_minutes_played_total,
+                r.stat_goals_total_per90,
+                r.stat_shots_total_total_per90,
+                r.stat_successful_dribbles_total_per90,
+                r.stat_key_passes_total_per90,
+                r.stat_passes_total_per90,
+                r.stat_tackles_total_per90,
+                r.stat_aeriels_won_total_per90,
+                r.stat_blocked_shots_total_per90,
+                r.stat_accurate_passes_percentage_total,
+                r.stat_cleansheets_total
+            FROM players p
+            JOIN player_season_records r ON r.player_id = p.id
+            WHERE p.league IN :b
+        """).bindparams(bindparam("b", expanding=True))
+
+        with self.engine.connect() as conn:
+            result = conn.execute(query, {"b": big5})
+            df = pd.DataFrame(result.fetchall(), columns=list(result.keys()))
+        if df.empty:
+            return df
+
+        # 선수당 최신 시즌 1행
+        df = (
+            df.sort_values("season_start_year", ascending=False)
+              .drop_duplicates("player_id", keep="first")
+              .reset_index(drop=True)
+        )
+        # 백엔드 컬럼 → AI 후보 풀 short name
+        df = df.rename(columns={
+            "stat_goals_total_per90": "goals",
+            "stat_shots_total_total_per90": "shots",
+            "stat_successful_dribbles_total_per90": "successful_dribbles",
+            "stat_key_passes_total_per90": "key_passes",
+            "stat_passes_total_per90": "passes",
+            "stat_tackles_total_per90": "tackles",
+            "stat_aeriels_won_total_per90": "aerials_won",
+            "stat_blocked_shots_total_per90": "blocked_shots",
+            "stat_accurate_passes_percentage_total": "accurate_passes_%",
+            "stat_cleansheets_total": "cleansheets",
+        })
+
+        def _role(pos):
+            try:
+                return Position(pos).role_name
+            except ValueError:
+                return None
+
+        def _league_disp(lg):
+            try:
+                return League[lg].display_name
+            except KeyError:
+                return None
+
+        df["position_code"] = df["position"].map(_role)
+        df["league_name"] = df["league"].map(_league_disp)
+        return df[df["position_code"].notna() & df["league_name"].notna()].reset_index(drop=True)
