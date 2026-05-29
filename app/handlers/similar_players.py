@@ -77,10 +77,17 @@ class SimilarPlayersHandler:
                 results_per_row = self.ai_pipeline.predict_similar(
                     rows, request.destination_league, top_k=self.DEFAULT_TOP_K,
                 )
+                # 후보 이름 → 백엔드 DB player_id 일괄 변환 (후보 풀 id 와 백엔드 id 체계가 달라서)
+                all_names = {name for entries in results_per_row for name, _ in entries}
+                name_to_id = self.feature_store.get_player_ids_by_names(all_names)
                 for pid, entries in zip(valid_pids, results_per_row):
                     by_pid[pid] = [
-                        SimilarPlayerEntry(similar_player_id=sid, similarity_score=score)
-                        for sid, score in entries
+                        SimilarPlayerEntry(
+                            similar_player_id=name_to_id[name],
+                            similarity_score=score,
+                        )
+                        for name, score in entries
+                        if name in name_to_id
                     ]
             except Exception:
                 logger.exception("AI similar_player 호출 실패")

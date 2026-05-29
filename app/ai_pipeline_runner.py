@@ -124,16 +124,17 @@ class AiPredictionPipeline:
         player_rows: list[dict[str, Any]],
         destination_league: League,
         top_k: int = 5,
-    ) -> list[list[tuple[int, float]]]:
+    ) -> list[list[tuple[str, float]]]:
         """선수별 top_k 유사선수 후보 반환.
 
-        반환: rows 와 같은 길이의 list. 각 항목은 [(similar_player_id, similarity_score), ...].
-        실패한 row 는 빈 list.
+        반환: rows 와 같은 길이의 list. 각 항목은 [(similar_player_name, similarity_score), ...].
+        후보 풀의 player_id 는 백엔드 DB id 와 체계가 달라, 이름을 키로 반환하고
+        핸들러에서 백엔드 player_id 로 변환한다. 실패한 row 는 빈 list.
         """
         if not self._similar_module or not player_rows:
             return [[] for _ in player_rows]
 
-        results: list[list[tuple[int, float]]] = []
+        results: list[list[tuple[str, float]]] = []
         dest_display = destination_league.display_name
         for row in player_rows:
             try:
@@ -144,13 +145,13 @@ class AiPredictionPipeline:
                     top_k=top_k,
                 )
                 recs = ret["recommendations"]
-                entries: list[tuple[int, float]] = []
+                entries: list[tuple[str, float]] = []
                 for _, r in recs.iterrows():
-                    sid = r.get("player_id")
+                    name = r.get("player_name")
                     sim = r.get("similarity")
-                    if sid is None or pd.isna(sim):
+                    if name is None or pd.isna(name) or pd.isna(sim):
                         continue
-                    entries.append((int(sid), float(sim)))
+                    entries.append((str(name), float(sim)))
                 results.append(entries)
             except Exception:
                 logger.exception("similar_player 호출 실패 player_id=%s", row.get("player_id"))
