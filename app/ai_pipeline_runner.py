@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 AI_PIPELINE_DIR = Path(__file__).parent / "ai_pipeline"
 PREDICT_PIPELINE_PATH = AI_PIPELINE_DIR / "predict_pipeline.py"
 MARKET_VALUE_DIR = AI_PIPELINE_DIR / "market_value"
-MARKET_VALUE_MODEL = MARKET_VALUE_DIR / "market_value_with_stage2_perf_model_sample10.pkl"
-MARKET_VALUE_FEATURES = MARKET_VALUE_DIR / "market_value_with_stage2_perf_features_sample10.pkl"
+MARKET_VALUE_MODEL = MARKET_VALUE_DIR / "marketvalue_final.pkl"
+MARKET_VALUE_FEATURES = MARKET_VALUE_DIR / "marketvalue_final_features.pkl"
 SIMILAR_PLAYER_PATH = AI_PIPELINE_DIR / "similar_player_deploy_artifacts" / "predict_similar_players.py"
 
 # Stage2 target_short_name -> market_value 모델의 pred_after_* 컬럼명
@@ -42,6 +42,10 @@ _TARGET_TO_PRED_AFTER: dict[str, str] = {
     "cleansheets": "pred_after_cleansheets",
     "accurate_passes_%": "pred_after_accurate_passes_pct",
 }
+
+# 이 지표들은 Stage2 보정이 부정확해 Stage1 예측값을 채택한다(AI 팀 stage1_override_targets).
+# performance 응답/캐시도 동일하게 Stage1 값으로 저장하므로 캐시값을 그대로 신뢰한다.
+_STAGE1_OVERRIDE: set[str] = {"accurate_passes_%", "blocked_shots"}
 
 
 def _load_module(module_name: str, path: Path):
@@ -163,13 +167,17 @@ class AiPredictionPipeline:
         destination_league: League,
         cached_by_pid: Optional[dict[int, dict[str, float]]] = None,
     ) -> list[Optional[int]]:
-        """Stage1+Stage2 결과를 활용해 market_value 모델로 EUR 예측.
+        """Stage2 예측 퍼포먼스 + 현재 시장가치로 market_value 모델 EUR 예측.
 
-        cached_by_pid 가 있으면 해당 player_id 는 Stage1+Stage2 호출을 스킵하고
-        캐시 값을 stage2 final_after_pred 로 간주해 pred_after_* 입력에 사용한다.
-        형식: {player_id: {target_short_name: value}} (e.g. {123: {"goals": 0.45}}).
+        모델 입력의 pred_after_* 는 이적 후 예측 per90 — 8개는 Stage2 final_after_pred,
+        accurate_passes_%/blocked_shots 2개는 Stage1 값(stage1_override). 여기에
+        prev_market_value_log=log1p(현재 시장가치) 를 더해 입력을 구성한다.
 
-        반환 길이는 player_rows 와 동일. 예측 실패한 row 는 None.
+        cached_by_pid 가 있으면 해당 player_id 는 Stage1+Stage2 호출을 스킵하고 캐시 값을
+        pred_after_* 로 쓴다. 캐시(performance 응답)도 stage1_override 가 반영돼 있어 그대로 신뢰.
+        형식: {player_id: {target_short_name: value}}.
+
+        모델 출력은 log1p(EUR) → expm1 역변환. 반환 길이는 player_rows 와 동일.
         """
         if not self._mv_model or not player_rows:
             return [None] * len(player_rows)
@@ -189,7 +197,7 @@ class AiPredictionPipeline:
         # row_index → pred_after_* dict (player_rows 전역 인덱스 기준)
         pred_after_by_idx: dict[int, dict[str, float]] = {}
 
-        # 캐시 hit: 캐시된 short_name → pred_after_* 입력
+        # 캐시 hit: 캐시값(performance 가 stage1_override 까지 반영해 저장) → pred_after_* 그대로
         for pid, short_to_val in cached_by_pid.items():
             gidx = pid_to_idx.get(int(pid))
             if gidx is None:
@@ -199,7 +207,7 @@ class AiPredictionPipeline:
                 if field and value is not None:
                     pred_after_by_idx.setdefault(gidx, {})[field] = float(value)
 
-        # 캐시 miss: Stage1+Stage2 호출 후 stage2_df 에서 pred_after_* 추출
+        # 캐시 miss: Stage1+Stage2 호출 — override 2개는 stage1_pred, 나머지는 final_after_pred
         if miss_rows:
             stage2_df = self.predict(miss_rows, destination_league)
             for _, r in stage2_df.iterrows():
@@ -207,24 +215,27 @@ class AiPredictionPipeline:
                 if local_idx >= len(miss_local_to_global):
                     continue
                 gidx = miss_local_to_global[local_idx]
-                field = _TARGET_TO_PRED_AFTER.get(r["target_short_name"])
-                value = r["final_after_pred"]
+                short = r["target_short_name"]
+                field = _TARGET_TO_PRED_AFTER.get(short)
+                value = r["stage1_pred"] if short in _STAGE1_OVERRIDE else r["final_after_pred"]
                 if field and not pd.isna(value):
                     pred_after_by_idx.setdefault(gidx, {})[field] = float(value)
 
-        # market_value 모델 입력 구성 — league 컬럼은 enum 이름("PREMIER_LEAGUE") 사용
+        # 입력 구성 — league=목적지 enum 이름, prev_market_value_log=log1p(현재 시장가치)
         prepared: list[dict[str, Any]] = []
         for i, row in enumerate(player_rows):
             built = self._build_input_row(row, destination_league)
             built["league"] = destination_league.name
+            cmv = row.get("market_value") or row.get("current_market_value")
+            if cmv:
+                built["prev_market_value_log"] = float(np.log1p(float(cmv)))
             built.update(pred_after_by_idx.get(i, {}))
             prepared.append(built)
 
         df = pd.DataFrame(prepared).reindex(columns=self._mv_features)
         try:
-            # 모델 출력은 log(EUR). 실제 EUR 로 변환해 반환.
-            log_eur = self._mv_model.predict(df)
-            return [int(round(np.exp(float(v)))) for v in log_eur]
+            # 모델 출력은 log1p(EUR). 실제 EUR 로 변환해 반환.
+            return [int(round(float(v))) for v in np.expm1(self._mv_model.predict(df))]
         except Exception:
             logger.exception("market_value 모델 예측 실패")
             return [None] * len(player_rows)

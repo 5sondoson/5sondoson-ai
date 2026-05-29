@@ -15,7 +15,9 @@ from app.models.registry import LEAGUES, ModelRegistry
 from app.schemas.api import MarketValuePrediction, MarketValueRequest
 from app.schemas.enums import League
 
-# 캐시 테이블 컬럼명 → AI 모델의 target_short_name 매핑 (Stage2 final_after_pred 와 동일한 의미)
+# 캐시 테이블(player_performance_predictions) 컬럼명 → AI 모델 target_short_name.
+# performance 응답을 백엔드가 저장한 값이라 stage1_override(accurate_passes_pct/blocked_shots)
+# 도 이미 반영돼 있어 market_value 입력으로 그대로 신뢰한다.
 _CACHE_FIELD_TO_SHORT: dict[str, str] = {
     "pred_goals_total_per90": "goals",
     "pred_shots_total_per90": "shots",
