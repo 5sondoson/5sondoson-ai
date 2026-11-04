@@ -13,7 +13,7 @@
 - **세 가지 예측 엔드포인트** — performance(per90 스탯 10개) / market-value(EUR + 변화율) / similar-players(top-5).
 - **백엔드 RDS read-only 연동** — 운영 환경에서는 백엔드 MySQL 을 직접 조회한다(`DbFeatureStore`). 로컬은 자동으로 `MockFeatureStore` 로 대체.
 - **모델 파일 교체만으로 갱신** — `BasePredictor` / `ModelPredictor` / `MockPredictor` 추상화로 코드 수정 없이 .pkl/.joblib 만 S3 에 올리면 적용된다.
-- **GitHub Actions 자동 배포** — `main` 푸시 → pytest → SSH 로 EC2 배포.
+- **GitHub Actions 자동 테스트** — `main` 푸시 → 통합 테스트.
 
 ---
 
@@ -82,7 +82,7 @@ uvicorn app.main:app --reload --port 8000
 
 ## 배포 / 운영
 
-- **CI/CD**: [.github/workflows/deploy.yml](./.github/workflows/deploy.yml) — `main` 푸시 시 pytest 후 SSH 로 EC2 배포.
+- **CI**: [.github/workflows/test.yml](./.github/workflows/test.yml) — `main` 푸시 시 통합 테스트. 자동 배포는 없다.
 - **인프라**: AWS EC2 (ap-northeast-2), Elastic IP, S3(모델 보관), 백엔드 RDS read-only.
 - **환경변수 분기**:
   - `MODEL_BUCKET` 설정 시 S3 에서 모델 다운로드, 없으면 `app/models/` 로컬 산출물 사용
