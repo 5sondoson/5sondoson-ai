@@ -46,7 +46,7 @@ HTTP POST 로 호출한다(read timeout 300초). 부분 실패를 허용한다 �
 - 모델은 sklearn 기반(`.pkl`/`.joblib`), CPU 추론.
 - `BasePredictor` / `ModelPredictor` / `MockPredictor` 추상화 — 파일 교체만으로 모델 갱신.
 - 버전 문자열에 `dummy` 또는 `-mock` 포함 시 `is_mock=True` 로 분류.
-- 배포: FastAPI + Docker + AWS EC2 + GitHub Actions(SSH).
+- 실행: FastAPI + Docker. GitHub Actions 는 테스트만 돌리고 자동 배포는 없다.
 
 ## 작업 컨벤션
 
